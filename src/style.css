@@ -126,6 +126,7 @@ html:has(.selection-active){scroll-padding-bottom:180px}.selection-active input:
 
 .label-copies{display:flex;align-items:center;gap:12px;flex-basis:100%}
 .label-copies select{width:80px;min-height:44px;font-size:16px}
+.label-pdf-link{display:inline-flex;align-items:center;min-height:44px;padding:11px 16px;margin:8px 10px 8px 0;border:1px solid #cbd6ce;border-radius:10px;background:white;color:#176956;text-decoration:underline}
 @media screen{.print-sheet{display:flex;flex-wrap:wrap;justify-content:center;max-width:245mm;margin:0 auto}.print-sheet .label{flex:none}}
 @page{size:A4 landscape;margin:0}
 @media print{
