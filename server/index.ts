@@ -10,7 +10,7 @@ const log=(message:string)=>console.log(`${new Date().toISOString()} [KistenKomp
 const directory=process.env.DATA_DIR||'data';mkdirSync(directory,{recursive:true});const store=new Store(resolve(directory,'kistenkompass.sqlite')),accounts=new Accounts(store);
 const app=express();
 app.use((req,res,next)=>{const started=Date.now();res.on('finish',()=>{if(res.statusCode>=400||(!['GET','HEAD'].includes(req.method)&&req.path.startsWith('/api/')))log(`${req.method} ${req.route?.path||'/api'}: HTTP ${res.statusCode} (${Date.now()-started} ms)`);});next();});
-const deployment=configureProxy(app);app.use(express.json({limit:'1mb'}));
+const deployment=configureProxy(app);app.use(express.json({limit:'9mb'}));
 const token=(req:express.Request)=>req.headers.cookie?.split(';').map(s=>s.trim()).find(s=>s.startsWith('kk_session='))?.slice(11)||'';
 const cookie=(req:express.Request,value:string)=>`kk_session=${value}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${value?604800:0}${deployment.secureCookies||req.secure?'; Secure':''}`;
 app.get('/api/health',(_req,res)=>res.json({ok:true}));
@@ -32,7 +32,9 @@ app.get('/api/data',(_req,res)=>res.json({rooms:store.rooms(res.locals.move),box
 for(const method of ['post','put'] as const)app[method]('/api/box-types'+(method==='put'?'/:name':''),admin,(req,res)=>{try{res.json(store.saveBoxType(req.body,method==='put'?String(req.params.name):undefined));}catch(e){res.status(400).json({error:(e as Error).message});}});
 for(const method of ['post','put'] as const)app[method]('/api/rooms'+(method==='put'?'/:id':''),(req,res)=>{const {name,color}=req.body;if(typeof name!=='string'||!name.trim()||typeof color!=='string'||!/^#[0-9a-f]{6}$/i.test(color))return res.status(400).json({error:'Name und gültige Raumfarbe erforderlich'});const id=method==='put'?String(req.params.id):crypto.randomUUID();if(method==='put'){const result=store.db.prepare('UPDATE rooms SET name=?,color=? WHERE id=? AND moveId=?').run(name.trim(),color,id,res.locals.move);if(!result.changes)return res.status(404).json({error:'Raum nicht gefunden'});}else store.db.prepare('INSERT INTO rooms(id,name,color,moveId) VALUES(?,?,?,?)').run(id,name.trim(),color,res.locals.move);res.json({id});});
 for(const method of ['post','put'] as const)app[method]('/api/boxes'+(method==='put'?'/:id':''),(req,res)=>{try{res.json({id:store.saveBox(req.body,method==='put'?String(req.params.id):undefined,res.locals.move)});}catch(e){res.status(400).json({error:(e as Error).message});}});
+app.get('/api/boxes/:boxId/photos/:id',(req,res)=>{const photo=store.photo(String(req.params.id),String(req.params.boxId),res.locals.move);if(!photo)return res.status(404).json({error:'Foto nicht gefunden'});res.setHeader('Cache-Control','private, no-store');res.setHeader('X-Content-Type-Options','nosniff');res.type(String(photo.mime)).send(Buffer.from(photo.data as Uint8Array));});
 app.delete('/api/boxes/:id',(req,res)=>{try{store.deleteBox(String(req.params.id),res.locals.move);res.json({ok:true});}catch(e){res.status(404).json({error:(e as Error).message});}});
+app.use((error:any,_req:express.Request,res:express.Response,next:express.NextFunction)=>{if(error?.type==='entity.too.large')return res.status(413).json({error:'Fotos sind zu groß. Bitte weniger Fotos hinzufügen.'});next(error);});
 app.use('/api',(_req,res)=>res.status(404).json({error:'Endpunkt nicht gefunden'}));
 app.use(express.static(resolve('dist')));app.get('/{*path}',(_req,res)=>res.sendFile(resolve('dist/index.html')));
 const server=app.listen(port,'0.0.0.0',()=>{

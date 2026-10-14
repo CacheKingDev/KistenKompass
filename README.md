@@ -28,8 +28,10 @@ Beim ersten Aufruf wird ein Administratorkonto eingerichtet (Passwort mindestens
 
 Bestehende Räume und Kartons werden beim ersten Start automatisch dem Umzug „Mein erster Umzug“ zugeordnet. Kartonnummern bleiben global eindeutig. Neue QR-Etiketten verweisen auf den zugehörigen Umzug, vorhandene QR-Links ohne Umzugskennung auf den ersten Umzug. Vor einem Update das Datenverzeichnis sichern.
 
-Noch offen: Fotos, Raum-Bearbeitung, Stapeldruck/PDF-Erzeugung, Kamerascanner, PWA und Offline-Synchronisierung. Browserdruck bietet zunächst PDF-Speicherung. Lange Texte auf Etiketten benötigen noch eine höhenabhängige Seitenaufteilung; derzeit neun Inhaltszeilen je Seite.
+Noch offen: Raum-Bearbeitung, Stapeldruck/PDF-Erzeugung, Kamerascanner, PWA und Offline-Synchronisierung. Browserdruck bietet zunächst PDF-Speicherung. Lange Texte auf Etiketten benötigen noch eine höhenabhängige Seitenaufteilung; derzeit neun Inhaltszeilen je Seite.
 
 Kartonarten erhalten Außenmaße (Länge × Breite × Höhe in cm). Daraus wird das Volumen in Litern und m³ berechnet. Die Übersicht summiert alle erfassten Kartons unabhängig von Status und Filter. Bestehende Kartonarten bleiben erhalten; fehlende Maße werden angezeigt und müssen ergänzt werden. Möbel und zusätzlicher Platz für Lücken sind nicht enthalten.
 
 Prüfung: `npm run build` und `npm test`.
+
+Fotos können beim Erfassen und Bearbeiten eines Kartons ergänzt werden: bis zu sechs Bilder aus der Fotomediathek oder über „Foto aufnehmen“. Bilder werden im Browser auf höchstens 1600 Pixel Kantenlänge verkleinert und als JPEG gespeichert. Hinzufügen und Entfernen wird erst mit „Speichern“ übernommen. Die Fotos liegen in der SQLite-Datenbank, sind über die Umzugsberechtigung geschützt und werden beim Löschen des Kartons oder Umzugs entfernt. Bei einem vorgeschalteten Reverse Proxy muss das Request-Limit mindestens 9 MB zulassen.

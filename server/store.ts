@@ -15,6 +15,7 @@ export class Store {
  defaults.run(54,39,24,'Bananenkarton');
  defaults.run(60,33,34,'Umzugskarton');
  this.migrateBoxNumbers();
+ this.db.exec('CREATE TABLE IF NOT EXISTS box_photos(id TEXT PRIMARY KEY,boxId TEXT NOT NULL REFERENCES boxes(id) ON DELETE CASCADE,mime TEXT NOT NULL,data BLOB NOT NULL)');
  }
  private migrateBoxNumbers(){
  const db=this.db;
@@ -56,13 +57,35 @@ export class Store {
  this.db.prepare('INSERT INTO box_types(name) VALUES(?)').run(value);
  return value;
  }
- boxes(moveId?:string){return (moveId?this.db.prepare('SELECT * FROM boxes WHERE moveId=? ORDER BY number').all(moveId):this.db.prepare('SELECT * FROM boxes ORDER BY number').all()).map(b=>({...b,id:String(b.id),number:Number(b.number),status:String(b.status),type:String(b.type),items:JSON.parse(String(b.items)) as string[],fragile:!!b.fragile,heavy:!!b.heavy}));}
+ boxes(moveId?:string){return (moveId?this.db.prepare('SELECT * FROM boxes WHERE moveId=? ORDER BY number').all(moveId):this.db.prepare('SELECT * FROM boxes ORDER BY number').all()).map(b=>({...b,id:String(b.id),name:String(b.name),number:Number(b.number),status:String(b.status),type:String(b.type),photos:this.db.prepare('SELECT id FROM box_photos WHERE boxId=? ORDER BY rowid').all(b.id).map(p=>({id:String(p.id)})),items:JSON.parse(String(b.items)) as string[],fragile:!!b.fragile,heavy:!!b.heavy}));}
  deleteBox(id:string,moveId:string){if(!this.db.prepare('DELETE FROM boxes WHERE id=? AND moveId=?').run(id,moveId).changes)throw Error('Karton nicht gefunden');}
+ photo(id:string,boxId:string,moveId:string){return this.db.prepare('SELECT p.mime,p.data FROM box_photos p JOIN boxes b ON b.id=p.boxId WHERE p.id=? AND b.id=? AND b.moveId=?').get(id,boxId,moveId);}
  saveBox(b:any,id?:string,moveId?:string){
+ const db=this.db;db.exec('BEGIN IMMEDIATE');try{
+ const key=this.saveBoxData(b,id,moveId);
+ if(b.photos!==undefined){
+ if(!Array.isArray(b.photos)||b.photos.length>6)throw Error('Höchstens 6 Fotos pro Karton erlaubt');
+ const retained=new Set<string>();
+ for(const photo of b.photos){
+ if(photo?.data){
+ const match=typeof photo.data==='string'&&/^data:image\/(jpeg|png|webp);base64,([A-Za-z0-9+/]+={0,2})$/.exec(photo.data);
+ if(!match)throw Error('Ungültiges Fotoformat');
+ const data=Buffer.from(match[2],'base64'),format=match[1];
+ const valid=format==='jpeg'?data[0]===255&&data[1]===216&&data[2]===255:format==='png'?data.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10])):data.toString('ascii',0,4)==='RIFF'&&data.toString('ascii',8,12)==='WEBP';
+ if(!valid||data.length>1024*1024)throw Error('Foto ungültig oder größer als 1 MB');
+ const photoId=crypto.randomUUID();db.prepare('INSERT INTO box_photos VALUES(?,?,?,?)').run(photoId,key,'image/'+format,data);retained.add(photoId);
+ }else if(typeof photo?.id==='string'&&db.prepare('SELECT id FROM box_photos WHERE id=? AND boxId=?').get(photo.id,key)&&!retained.has(photo.id)){retained.add(photo.id);}else throw Error('Foto nicht gefunden');
+ }
+ for(const photo of db.prepare('SELECT id FROM box_photos WHERE boxId=?').all(key))if(!retained.has(String(photo.id)))db.prepare('DELETE FROM box_photos WHERE id=?').run(photo.id);
+ }
+ db.exec('COMMIT');return key;
+ }catch(e){db.exec('ROLLBACK');throw e;}
+ }
+ private saveBoxData(b:any,id?:string,moveId?:string){
  if(moveId){if(id&&!this.db.prepare('SELECT id FROM boxes WHERE id=? AND moveId=?').get(id,moveId))throw Error('Karton nicht gefunden');if(b.roomId&&!this.db.prepare('SELECT id FROM rooms WHERE id=? AND moveId=?').get(b.roomId,moveId))throw Error('Raum gehört zu einem anderen Umzug');}
  if(!b || typeof b.name!=='string'|| !b.name.trim() || !Array.isArray(b.items)||b.items.some((i:any)=>typeof i!=='string')|| !['In Vorbereitung','Gepackt','Transportiert','Angekommen','Ausgepackt'].includes(b.status)||typeof b.type!=='string'|| typeof b.fragile!=='boolean'||typeof b.heavy!=='boolean')throw new Error('Ungültige Kartondaten');
  const values=[b.name.trim(),b.roomId||null,JSON.stringify(b.items),b.type,b.fragile?1:0,b.heavy?1:0,b.status,String(b.transporter||''),String(b.departed||'')];
  if(id){const result=this.db.prepare('UPDATE boxes SET name=?,roomId=?,items=?,type=?,fragile=?,heavy=?,status=?,transporter=?,departed=? WHERE id=?').run(...values,id);if(!result.changes)throw new Error('Karton nicht gefunden');return id;}
- this.db.exec('BEGIN IMMEDIATE');try{const targetMove=moveId||'initial';const row=this.db.prepare('WITH candidates(number) AS (SELECT 1 UNION ALL SELECT number+1 FROM boxes WHERE moveId=?) SELECT MIN(number) AS value FROM candidates WHERE NOT EXISTS (SELECT 1 FROM boxes WHERE moveId=? AND boxes.number=candidates.number)').get(targetMove,targetMove)!;const key=crypto.randomUUID();this.db.prepare('INSERT INTO boxes(name,roomId,items,type,fragile,heavy,status,transporter,departed,id,number,moveId) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)').run(...values,key,Number(row.value),targetMove);this.db.exec('COMMIT');return key;}catch(e){this.db.exec('ROLLBACK');throw e;}
+ const targetMove=moveId||'initial';const row=this.db.prepare('WITH candidates(number) AS (SELECT 1 UNION ALL SELECT number+1 FROM boxes WHERE moveId=?) SELECT MIN(number) AS value FROM candidates WHERE NOT EXISTS (SELECT 1 FROM boxes WHERE moveId=? AND boxes.number=candidates.number)').get(targetMove,targetMove)!;const key=crypto.randomUUID();this.db.prepare('INSERT INTO boxes(name,roomId,items,type,fragile,heavy,status,transporter,departed,id,number,moveId) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)').run(...values,key,Number(row.value),targetMove);return key;
  }
 }

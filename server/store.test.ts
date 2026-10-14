@@ -101,3 +101,22 @@ test('Alte Datenbank erhält Maße ohne Datenverlust und speichert sie nach Neus
  assert.equal(s.boxes()[0].id,id);assert.equal(s.boxTypeDetails().find(t=>t.name==='Altbestand')?.volumeLiters,60.6);assert.equal(s.volumeSummary().missing,0);
  }finally{s?.db.close();rmSync(dir,{recursive:true,force:true});}
 });
+
+test('Fotos bleiben nach Neustart erhalten, schützen Umzugsgrenzen und werden mit dem Karton gelöscht',()=>{
+ const dir=mkdtempSync(join(tmpdir(),'kk-photos-')),path=join(dir,'test.sqlite');let s:Store|undefined;
+ const data='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jZioAAAAASUVORK5CYII=';
+ try{
+ s=new Store(path);const id=s.saveBox({...box,photos:[{data}]},undefined,'a');const photo=s.boxes('a')[0].photos[0];
+ assert.ok(s.photo(photo.id,id,'a'));assert.equal(s.photo(photo.id,id,'b'),undefined);
+ assert.equal(s.boxes('a')[0].photos[0].id,photo.id);assert.equal('data' in photo,false);
+ s.db.close();s=new Store(path);assert.ok(s.photo(photo.id,id,'a'));
+ s.saveBox({...box,name:'Geändert'},id,'a');assert.equal(s.boxes('a')[0].photos.length,1);
+ assert.throws(()=>s!.saveBox({...box,name:'Verworfen',photos:[{data:'data:image/png;base64,YWJj'}]},id,'a'));
+ assert.equal(s.boxes('a')[0].name,'Geändert');assert.ok(s.photo(photo.id,id,'a'));
+ assert.throws(()=>s!.saveBox({...box,photos:Array.from({length:7},()=>({data}))},undefined,'a'));
+ assert.equal(s.boxes('a').length,1);
+ const other=s.saveBox(box,undefined,'b');assert.throws(()=>s!.saveBox({...box,photos:[photo]},other,'b'));
+ s.saveBox({...box,photos:[]},id,'a');assert.equal(s.photo(photo.id,id,'a'),undefined);
+ s.saveBox({...box,photos:[{data}]},id,'a');s.deleteBox(id,'a');assert.equal(s.db.prepare('SELECT COUNT(*) AS n FROM box_photos').get()?.n,0);
+ }finally{s?.db.close();rmSync(dir,{recursive:true,force:true});}
+});

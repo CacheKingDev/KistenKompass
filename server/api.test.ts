@@ -16,8 +16,15 @@ test('HTTP schützt Daten und Adminaktionen; zugewiesene Umzüge und QR-Ziele bl
  const assigned=(await request('/api/moves',{name:'Gemeinsam',date:'2026-11-01',origin:'A',destination:'B',userIds:[helper]})).body.id;
  const room=(await request('/api/rooms?move='+other,{name:'Küche',color:'#123456'})).body.id;
  const b={name:'Tassen',roomId:room,items:['Tasse'],type:'Umzugskarton',fragile:true,heavy:false,status:'Gepackt'};const box=(await request('/api/boxes?move='+other,b)).body.id;
+ const photoData='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jZioAAAAASUVORK5CYII=';
+ assert.equal((await request('/api/boxes/'+box+'?move='+other,{...b,photos:[{data:photoData}]},'PUT')).status,200);
+ const photoId=(await request('/api/data?move='+other)).body.boxes[0].photos[0].id;
+ const photoPath='/api/boxes/'+box+'/photos/'+photoId;
+ assert.equal((await fetch(base+photoPath+'?move='+other)).status,401);
+ const photoResponse=await fetch(base+photoPath+'?move='+other,{headers:{Cookie:admin}});assert.equal(photoResponse.status,200);assert.equal(photoResponse.headers.get('content-type'),'image/png');assert.ok((await photoResponse.arrayBuffer()).byteLength>0);
+ assert.equal((await request(photoPath+'?move='+assigned)).status,404);
  cookie=(await request('/api/login',{username:'helper',password:'helper-password'})).cookie!;
- assert.equal((await request('/api/users')).status,403);assert.equal((await request('/api/data?move='+other)).status,403);assert.equal((await request('/api/moves')).body.length,1);
+ assert.equal((await request(photoPath+'?move='+other)).status,403);assert.equal((await request(photoPath+'?move='+assigned)).status,404);assert.equal((await request('/api/users')).status,403);assert.equal((await request('/api/data?move='+other)).status,403);assert.equal((await request('/api/moves')).body.length,1);
  assert.equal((await request('/api/boxes?move='+assigned,b)).status,400);assert.equal((await request('/api/boxes/'+box+'?move='+assigned,{...b,roomId:''},'PUT')).status,400);
  assert.equal((await request('/api/box-types?move='+assigned,{name:'Test',length:1,width:1,height:1})).status,403);
  assert.equal((await request('/api/boxes?move='+assigned,{...b,roomId:''})).status,200);assert.equal((await request('/api/data?move='+assigned)).body.boxes.length,1);assert.equal((await request('/api/data?move='+other,undefined,'GET',admin)).body.boxes[0].id,box);
