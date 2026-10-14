@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<Container version="2">
+  <Name>KistenKompass</Name>
+  <Repository>kistenkompass:local</Repository>
+  <Registry/>
+  <Network>br0</Network>
+  <MyIP/>
+  <Privileged>false</Privileged>
+  <Support/>
+  <Project/>
+  <Overview>Umzugs- und Kartonverwaltung. Image zuerst lokal aus dem Projekt bauen. Freie feste IP aus 192.168.80.0/24 eintragen. Nginx Proxy Manager leitet HTTP an diese IP auf Port 3000 weiter.</Overview>
+  <Category>HomeAutomation:</Category>
+  <WebUI>https://umzug.itwag.de</WebUI>
+  <ExtraParams>--init --restart=unless-stopped</ExtraParams>
+  <PostArgs/>
+  <Config Name="Appdata" Target="/data" Default="/mnt/user/appdata/kistenkompass" Mode="rw" Description="Persistente SQLite-Daten; UID/GID 1000 braucht Schreibrechte" Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/kistenkompass</Config>
+  <Config Name="HTTPS-Adresse" Target="PUBLIC_URL" Default="https://umzug.itwag.de" Mode="" Description="Öffentliche Adresse für Anmeldung und QR-Etiketten" Type="Variable" Display="always" Required="true" Mask="false">https://umzug.itwag.de</Config>
+  <Config Name="Vertrauenswürdiger Proxy" Target="TRUST_PROXY" Default="192.168.80.2" Mode="" Description="Tatsächliche Quell-IP von Nginx Proxy Manager" Type="Variable" Display="always" Required="true" Mask="false">192.168.80.2</Config>
+  <Config Name="Zeitzone" Target="TZ" Default="Europe/Berlin" Mode="" Description="Zeitzone" Type="Variable" Display="advanced" Required="true" Mask="false">Europe/Berlin</Config>
+</Container>

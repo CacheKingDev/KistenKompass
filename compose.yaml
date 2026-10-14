@@ -1,0 +1,26 @@
+services:
+  kistenkompass:
+    build: .
+    image: kistenkompass:local
+    init: true
+    environment:
+      PUBLIC_URL: ${PUBLIC_URL:?HTTPS-Adresse in .env eintragen}
+      TRUST_PROXY: ${TRUST_PROXY:?IP-Adresse von Nginx Proxy Manager in .env eintragen}
+      TZ: Europe/Berlin
+    networks:
+      lan:
+        ipv4_address: ${APP_IP:?Freie LAN-IP in .env eintragen}
+    volumes:
+      - ${APPDATA_PATH:-/mnt/user/appdata/kistenkompass}:/data
+    restart: unless-stopped
+    stop_grace_period: 30s
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/api/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      start_period: 20s
+      retries: 3
+networks:
+  lan:
+    external: true
+    name: ${UNRAID_NETWORK:-br0}

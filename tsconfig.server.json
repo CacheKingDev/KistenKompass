@@ -1,0 +1,1 @@
+{"compilerOptions":{"target":"ES2023","module":"NodeNext","moduleResolution":"NodeNext","strict":true,"esModuleInterop":true,"skipLibCheck":true,"rootDir":"server","outDir":"build-server"},"include":["server/index.ts","server/store.ts","server/accounts.ts","server/proxy.ts"]}

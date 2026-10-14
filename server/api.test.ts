@@ -1,0 +1,48 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {spawn} from 'node:child_process';
+import {mkdtempSync,rmSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+test('HTTP schützt Daten und Adminaktionen; zugewiesene Umzüge und QR-Ziele bleiben getrennt',async()=>{
+ const dir=mkdtempSync(join(tmpdir(),'kk-api-'));const child=spawn(process.execPath,['--import','tsx','server/index.ts'],{env:{...process.env,DATA_DIR:dir,PORT:'3198'},stdio:['ignore','pipe','pipe']});
+ const base='http://localhost:3198';let cookie='';
+ async function request(path:string,body?:unknown,method='POST',session=cookie){const response=await fetch(base+path,{method:body===undefined?'GET':method,headers:{'Content-Type':'application/json',Cookie:session},body:body===undefined?undefined:JSON.stringify(body)});return {status:response.status,body:await response.json(),cookie:response.headers.get('set-cookie')?.split(';')[0]};}
+ try{await new Promise<void>((resolve,reject)=>{child.stdout.once('data',()=>resolve());child.once('error',reject);child.once('exit',code=>reject(Error('Server beendet: '+code)));});
+ assert.equal((await request('/api/data')).status,401);assert.equal((await request('/api/session')).body.setup,true);
+ const credentials={name:'Admin',username:'admin',password:'test-password'};assert.equal((await request('/api/setup',credentials)).status,200);assert.equal((await request('/api/setup',credentials)).status,409);cookie=(await request('/api/login',credentials)).cookie!;const admin=cookie;
+ const helper=(await request('/api/users',{name:'Helfer',username:'helper',password:'helper-password',role:'user',active:true})).body.id;
+ const other=(await request('/api/moves',{name:'Privat',date:'',origin:'',destination:'',userIds:[]})).body.id;
+ const assigned=(await request('/api/moves',{name:'Gemeinsam',date:'2026-11-01',origin:'A',destination:'B',userIds:[helper]})).body.id;
+ const room=(await request('/api/rooms?move='+other,{name:'Küche',color:'#123456'})).body.id;
+ const b={name:'Tassen',roomId:room,items:['Tasse'],type:'Umzugskarton',fragile:true,heavy:false,status:'Gepackt'};const box=(await request('/api/boxes?move='+other,b)).body.id;
+ cookie=(await request('/api/login',{username:'helper',password:'helper-password'})).cookie!;
+ assert.equal((await request('/api/users')).status,403);assert.equal((await request('/api/data?move='+other)).status,403);assert.equal((await request('/api/moves')).body.length,1);
+ assert.equal((await request('/api/boxes?move='+assigned,b)).status,400);assert.equal((await request('/api/boxes/'+box+'?move='+assigned,{...b,roomId:''},'PUT')).status,400);
+ assert.equal((await request('/api/box-types?move='+assigned,{name:'Test',length:1,width:1,height:1})).status,403);
+ assert.equal((await request('/api/boxes?move='+assigned,{...b,roomId:''})).status,200);assert.equal((await request('/api/data?move='+assigned)).body.boxes.length,1);assert.equal((await request('/api/data?move='+other,undefined,'GET',admin)).body.boxes[0].id,box);
+ assert.equal((await request('/api/moves/'+assigned,{},'DELETE')).status,403);
+ assert.equal((await request('/api/moves/missing',{},'DELETE',admin)).status,404);
+ assert.equal((await request('/api/moves/'+other,{},'DELETE',admin)).status,200);
+ assert.equal((await request('/api/data?move='+other,undefined,'GET',admin)).status,403);
+ assert.equal((await request('/api/data?move='+assigned)).body.boxes.length,1);
+ assert.equal((await request('/api/moves/'+other,{},'DELETE',admin)).status,404);
+ const owned=(await request('/api/data?move='+assigned)).body.boxes[0].id;
+ assert.equal((await request('/api/boxes/'+owned+'?move='+assigned,{},'DELETE','')).status,401);
+ const privateMove=(await request('/api/moves',{name:'Privat löschen',date:'',origin:'',destination:'',userIds:[]},'POST',admin)).body.id;
+ const privateBox=(await request('/api/boxes?move='+privateMove,{...b,roomId:''},'POST',admin)).body.id;
+ assert.equal((await request('/api/boxes/'+privateBox+'?move='+privateMove,{},'DELETE')).status,403);
+ assert.equal((await request('/api/boxes/'+privateBox+'?move='+assigned,{},'DELETE')).status,404);
+ assert.equal((await request('/api/boxes/'+owned+'?move='+assigned,{},'DELETE')).status,200);
+ assert.equal((await request('/api/boxes/'+owned+'?move='+assigned,{},'DELETE')).status,404);
+ assert.equal((await request('/api/data?move='+assigned)).body.boxes.length,0);
+ assert.equal((await request('/api/data?move='+assigned)).body.volume.liters,0);
+ assert.equal((await request('/api/data?move='+privateMove,undefined,'GET',admin)).body.boxes[0].id,privateBox);
+ const next=(await request('/api/boxes?move='+assigned,{...b,roomId:''})).body.id;
+ assert.equal((await request('/api/data?move='+assigned)).body.boxes.find((b:any)=>b.id===next).number,1);
+ assert.equal((await request('/api/profile',{name:'Neu',username:'profil-neu',password:''},'PUT','')).status,401);
+ assert.equal((await request('/api/profile',{name:'Neu',username:'profil-neu',password:'',role:'admin',active:false},'PUT')).status,200);
+ const profileSession=(await request('/api/session')).body.user;assert.equal(profileSession.name,'Neu');assert.equal(profileSession.username,'profil-neu');assert.equal(profileSession.role,'user');assert.equal(profileSession.active,1);assert.equal((await request('/api/users')).status,403);
+ assert.equal((await request('/api/logout',{})).status,200);assert.equal((await request('/api/data?move='+assigned)).status,401);
+ }finally{const ended=new Promise<void>(resolve=>child.once('exit',()=>resolve()));child.kill();await ended;rmSync(dir,{recursive:true,force:true});}
+});

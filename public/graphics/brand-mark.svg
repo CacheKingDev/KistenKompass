@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <style>
+    :root{--tile:#176956;--edge:#176956;--box:#e6d1a8;--ink:#176956;--dial:#f5f7f6;--tip:#cc925f}
+    @media(prefers-color-scheme:dark){:root{--tile:#214c40;--edge:#80bda1;--box:#ecd9b5;--ink:#214c40;--dial:#e6f1ea;--tip:#b87945}}
+  </style>
+  <rect x="1" y="1" width="62" height="62" rx="15" fill="var(--tile)" stroke="var(--edge)" stroke-width="2"/>
+  <path d="m32 12 21 11v23L32 57 11 46V23Z" fill="var(--box)"/>
+  <path d="m11 23 21 11 21-11M32 34v23" fill="none" stroke="var(--ink)" stroke-width="2.5" stroke-linejoin="round"/>
+  <circle cx="42" cy="22" r="13" fill="var(--dial)" stroke="var(--ink)" stroke-width="2.5"/>
+  <path d="m47 15-2 10-9 4 3-10Z" fill="var(--ink)"/>
+  <path d="m42 22 5-7-2 10Z" fill="var(--tip)"/>
+</svg>
