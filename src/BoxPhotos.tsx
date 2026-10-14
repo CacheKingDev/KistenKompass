@@ -1,4 +1,5 @@
 import React,{useRef,useState} from 'react';
+import {PhotoGallery} from './PhotoGallery';
 export type Photo={id:string;data?:string};
 
 async function preparePhoto(file:File):Promise<Photo>{
@@ -20,14 +21,13 @@ async function preparePhoto(file:File):Promise<Photo>{
 
 export function BoxPhotos({photos,boxId,move,onChange,onBusy,disabled}:{photos:Photo[];boxId?:string;move:string;onChange:(photos:Photo[])=>void;onBusy:(busy:boolean)=>void;disabled:boolean}){
  const library=useRef<HTMLInputElement>(null),camera=useRef<HTMLInputElement>(null),working=useRef(false);
- const [error,setError]=useState(''),[expanded,setExpanded]=useState<string|null>(null),[busy,setBusy]=useState(false);
+ const [error,setError]=useState(''),[busy,setBusy]=useState(false);
  async function add(event:React.ChangeEvent<HTMLInputElement>){
   const files=Array.from(event.target.files||[]);event.target.value='';if(!files.length||working.current)return;
   setError('');if(files.length+photos.length>6){setError('Du kannst bis zu 6 Fotos pro Karton hinzufügen.');return;}
   working.current=true;setBusy(true);onBusy(true);
   try{const added:Photo[]=[];for(const file of files)added.push(await preparePhoto(file));onChange([...photos,...added]);}catch(e){setError((e as Error).message);}finally{working.current=false;setBusy(false);onBusy(false);}
  }
- const source=(photo:Photo)=>photo.data||`/api/boxes/${encodeURIComponent(boxId!)}/photos/${encodeURIComponent(photo.id)}?move=${encodeURIComponent(move)}`;
  return <section className="box-photos" aria-labelledby="photos-title">
   <h3 id="photos-title">Fotos <span className="count">{photos.length}/6</span></h3>
   <p className="muted">Karton oder Inhalt fotografieren. Änderungen werden mit „Speichern“ übernommen.</p>
@@ -35,7 +35,6 @@ export function BoxPhotos({photos,boxId,move,onChange,onBusy,disabled}:{photos:P
   <input ref={camera} type="file" accept="image/*" capture="environment" hidden aria-label="Foto aufnehmen" onChange={add}/>
   <div className="photo-controls"><button type="button" disabled={disabled||busy||photos.length>=6} onClick={()=>library.current?.click()}>Fotos hinzufügen</button><button type="button" disabled={disabled||busy||photos.length>=6} onClick={()=>camera.current?.click()}>Foto aufnehmen</button></div>
   {busy&&<p role="status">Fotos werden vorbereitet …</p>}{error&&<p className="error" role="alert">{error}</p>}
-  <div className="photo-grid">{photos.map((photo,index)=><div key={photo.id} className="photo-item"><button className="photo-thumbnail" type="button" aria-label={`Foto ${index+1} ${expanded===photo.id?'verkleinern':'vergrößern'}`} aria-expanded={expanded===photo.id} disabled={disabled||busy} onClick={()=>setExpanded(expanded===photo.id?null:photo.id)}><img src={source(photo)} alt={`Kartonfoto ${index+1}`}/></button><button type="button" disabled={disabled||busy} onClick={()=>{onChange(photos.filter(p=>p.id!==photo.id));if(expanded===photo.id)setExpanded(null);}} aria-label={`Foto ${index+1} entfernen`}>Entfernen</button></div>)}</div>
-  {expanded&&photos.some(p=>p.id===expanded)&&<div className="photo-expanded"><img src={source(photos.find(p=>p.id===expanded)!)} alt="Vergrößertes Kartonfoto"/><button type="button" onClick={()=>setExpanded(null)}>Foto schließen</button></div>}
+  <PhotoGallery photos={photos} boxId={boxId} move={move} disabled={disabled||busy} onChange={onChange}/>
  </section>;
 }
