@@ -13,6 +13,7 @@
   <WebUI/>
   <ExtraParams>--init --restart=unless-stopped</ExtraParams>
   <PostArgs/>
+  <Config Name="HTTP-Port" Target="PORT" Default="3000" Mode="" Description="HTTP-Port im Container; bei eigener LAN-IP denselben Port im Reverse Proxy eintragen" Type="Variable" Display="always" Required="true" Mask="false">3000</Config>
   <Config Name="Appdata" Target="/data" Default="/mnt/user/appdata/kistenkompass" Mode="rw" Description="Persistente SQLite-Daten; UID/GID 1000 braucht Schreibrechte" Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/kistenkompass</Config>
   <Config Name="HTTPS-Adresse" Target="PUBLIC_URL" Default="" Mode="" Description="Öffentliche Adresse für Anmeldung und QR-Etiketten" Type="Variable" Display="always" Required="true" Mask="false"></Config>
   <Config Name="Vertrauenswürdiger Proxy" Target="TRUST_PROXY" Default="" Mode="" Description="Tatsächliche Quell-IP von Nginx Proxy Manager" Type="Variable" Display="always" Required="true" Mask="false"></Config>

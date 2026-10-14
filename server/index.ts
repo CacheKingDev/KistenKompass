@@ -4,8 +4,13 @@ import {resolve} from 'node:path';
 import {Store} from './store.js';
 import {Accounts} from './accounts.js';
 import {configureProxy} from './proxy.js';
+const port=Number(process.env.PORT||3000);
+if(!Number.isInteger(port)||port<1||port>65535)throw Error('PORT muss eine ganze Zahl zwischen 1 und 65535 sein');
+const log=(message:string)=>console.log(`${new Date().toISOString()} [KistenKompass] ${message}`);
 const directory=process.env.DATA_DIR||'data';mkdirSync(directory,{recursive:true});const store=new Store(resolve(directory,'kistenkompass.sqlite')),accounts=new Accounts(store);
-const app=express();const deployment=configureProxy(app);app.use(express.json({limit:'1mb'}));
+const app=express();
+app.use((req,res,next)=>{const started=Date.now();res.on('finish',()=>{if(res.statusCode>=400||(!['GET','HEAD'].includes(req.method)&&req.path.startsWith('/api/')))log(`${req.method} ${req.route?.path||'/api'}: HTTP ${res.statusCode} (${Date.now()-started} ms)`);});next();});
+const deployment=configureProxy(app);app.use(express.json({limit:'1mb'}));
 const token=(req:express.Request)=>req.headers.cookie?.split(';').map(s=>s.trim()).find(s=>s.startsWith('kk_session='))?.slice(11)||'';
 const cookie=(req:express.Request,value:string)=>`kk_session=${value}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${value?604800:0}${deployment.secureCookies||req.secure?'; Secure':''}`;
 app.get('/api/health',(_req,res)=>res.json({ok:true}));
@@ -30,4 +35,18 @@ for(const method of ['post','put'] as const)app[method]('/api/boxes'+(method==='
 app.delete('/api/boxes/:id',(req,res)=>{try{store.deleteBox(String(req.params.id),res.locals.move);res.json({ok:true});}catch(e){res.status(404).json({error:(e as Error).message});}});
 app.use('/api',(_req,res)=>res.status(404).json({error:'Endpunkt nicht gefunden'}));
 app.use(express.static(resolve('dist')));app.get('/{*path}',(_req,res)=>res.sendFile(resolve('dist/index.html')));
-app.listen(Number(process.env.PORT||3000),'0.0.0.0',()=>console.log(`KistenKompass: http://localhost:${process.env.PORT||3000}`));
+const server=app.listen(port,'0.0.0.0',()=>{
+ log(`Server bereit: HTTP auf 0.0.0.0:${port}`);
+ log(`Betriebsmodus: ${process.env.NODE_ENV==='production'?'Produktion':'Entwicklung'}`);
+ log(`Datenbank: ${resolve(directory,'kistenkompass.sqlite')}`);
+ log(`HTTPS-Adresse: ${deployment.publicUrl||'nicht konfiguriert'}`);
+ log(`Vertrauenswürdige Proxies: ${process.env.TRUST_PROXY||'keine'}`);
+ log(`Einrichtung: ${accounts.users().length?'abgeschlossen':'Administratorkonto beim ersten Aufruf einrichten'}`);
+});
+server.on('error',(error:NodeJS.ErrnoException)=>{log(`Serverstart fehlgeschlagen: ${error.code||'Fehler'} auf Port ${port}`);store.db.close();process.exit(1);});
+let stopping=false;
+for(const signal of ['SIGTERM','SIGINT'] as const)process.on(signal,()=>{
+ if(stopping)return;stopping=true;log(`${signal}: Server wird beendet`);
+ const timeout=setTimeout(()=>{log('Zeitlimit beim Beenden überschritten');process.exit(1);},25000);timeout.unref();
+ server.close(()=>{clearTimeout(timeout);store.db.close();log('Server beendet; Datenbank geschlossen');process.exit(0);});
+});

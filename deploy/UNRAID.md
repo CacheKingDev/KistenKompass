@@ -1,6 +1,6 @@
 # UNRAID und Nginx Proxy Manager
 
-Trage deine eigene HTTPS-Adresse, die tatsächliche Proxy-IP und eine freie LAN-IP ein. Die folgenden Angaben mit example.com und 192.0.2.x sind ausschließlich Beispiele und müssen ersetzt werden. Die Anwendung hört intern auf **3000/HTTP**; NPM übernimmt HTTPS. Kein Unterpfad.
+Trage deine eigene HTTPS-Adresse, die tatsächliche Proxy-IP und eine freie LAN-IP ein. Die folgenden Angaben mit example.com und 192.0.2.x sind ausschließlich Beispiele und müssen ersetzt werden. Die Anwendung hört intern standardmäßig auf **3000/HTTP** (`PORT` ist anpassbar); NPM übernimmt HTTPS. Kein Unterpfad.
 
 ## 1. Dateien und Daten vorbereiten
 
@@ -92,3 +92,9 @@ Die Kartonnummerierung erfolgt pro Umzug: Neue Umzüge beginnen bei #001. Beim e
 Docker-Image erfolgreich gebaut und mit UID 1000, Anmeldung, Secure-Cookie, Raum/Karton-Speicherung, persistentem Volume nach Containerneustart und Healthcheck geprüft (`node deploy/smoke-docker.mjs`). Frontend-Build, kompilierter Produktionsserver, sechzehn HTTP-/Datentests für Proxy-Vertrauen, HTTPS-Cookies, Domainprüfung, Client-Anmeldelimit und Daten nach Neustart sind geprüft. Die tatsächliche LAN-IP, UNRAID-`br0`, DNS, Zertifikat und iPhone-Zugriff über NPM müssen auf deinem Server geprüft werden.
 
 Offizielle Grundlagen: [Express hinter Proxies](https://expressjs.com/en/guide/behind-proxies/), [Nginx Proxy Manager](https://nginxproxymanager.com/guide/), [UNRAID-Container und Netzwerke](https://docs.unraid.net/unraid-os/using-unraid-to/run-docker-containers/managing-and-customizing-containers/).
+
+## Eigener Port und Container-Protokoll
+
+In der Unraid-Vorlage eine Variable mit Schlüssel `PORT` hinzufügen, beispielsweise `3080`. Zulässig sind ganze Zahlen von 1 bis 65535; Standard ist 3000. Bei eigener LAN-IP (`Custom: br0` oder einem VLAN-Netz wie `br0.80`) im Nginx Proxy Manager den Forward Port auf denselben Wert setzen. Keine Docker-Portzuordnung erforderlich. Die öffentliche HTTPS-Adresse bleibt gleich, solange NPM weiterhin HTTPS auf Port 443 bereitstellt. Bei Bridge-Netzwerk dagegen eine Portzuordnung vom gewünschten Host-Port zum konfigurierten Container-Port hinzufügen.
+
+Unter Unraid → Docker → KistenKompass → Protokoll erscheinen Startzeit, Produktionsmodus, HTTP-Port, Datenbankpfad, HTTPS-Adresse, Proxy-Konfiguration und Einrichtungstatus. Schreibanfragen und fehlgeschlagene Anfragen werden mit HTTP-Status protokolliert; regelmäßige erfolgreiche Healthchecks bleiben ruhig. Passwörter, Cookies, Anfragetexte und Suchparameter werden nicht protokolliert. Beim Stoppen werden Server und Datenbank geschlossen.
