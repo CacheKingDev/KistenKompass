@@ -6,7 +6,7 @@ services:
     environment:
       PUBLIC_URL: ${PUBLIC_URL:?HTTPS-Adresse in .env eintragen}
       TRUST_PROXY: ${TRUST_PROXY:?IP-Adresse von Nginx Proxy Manager in .env eintragen}
-      TZ: Europe/Berlin
+      TZ: ${TZ:-UTC}
     networks:
       lan:
         ipv4_address: ${APP_IP:?Freie LAN-IP in .env eintragen}

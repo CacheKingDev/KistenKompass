@@ -1,6 +1,6 @@
 # UNRAID und Nginx Proxy Manager
 
-Die vorbereitete Installation verwendet **https://umzug.itwag.de**, Nginx Proxy Manager unter **192.168.80.2** und eine eigene, noch auszuwählende LAN-IP für KistenKompass. Die Anwendung hört intern auf **3000/HTTP**; NPM übernimmt HTTPS. Kein Unterpfad.
+Trage deine eigene HTTPS-Adresse, die tatsächliche Proxy-IP und eine freie LAN-IP ein. Die folgenden Angaben mit example.com und 192.0.2.x sind ausschließlich Beispiele und müssen ersetzt werden. Die Anwendung hört intern auf **3000/HTTP**; NPM übernimmt HTTPS. Kein Unterpfad.
 
 ## 1. Dateien und Daten vorbereiten
 
@@ -15,7 +15,7 @@ cp .env.example .env
 nano .env
 ```
 
-In `.env` `APP_IP` auf eine freie Adresse aus `192.168.80.0/24` setzen. Adresse im Router reservieren bzw. außerhalb des DHCP-Pools auswählen. Nicht `192.168.80.2` verwenden. Domain und Proxy-IP sind bereits eingetragen.
+In `.env` die leeren Felder `PUBLIC_URL`, `TRUST_PROXY` und `APP_IP` mit eigenen Werten ausfüllen. Die App-IP im Router reservieren bzw. außerhalb des DHCP-Pools auswählen. Netzwerkname und Zeitzone bei Bedarf anpassen.
 
 Vorhandene Daten übernehmen: bisherigen Server stoppen und **das gesamte Datenverzeichnis einschließlich eventuell vorhandener SQLite-WAL-Dateien** nach `/mnt/user/appdata/kistenkompass` kopieren. Anschließend die Schreibrechte der übernommenen Dateien für UID/GID 1000 prüfen. Bei laufender App keine einzelne SQLite-Datei kopieren.
 
@@ -25,7 +25,7 @@ Vorhandene Daten übernehmen: bisherigen Server stoppen und **das gesamte Datenv
 docker network inspect br0
 ```
 
-Das vorhandene benutzerdefinierte LAN-Netz muss den Bereich `192.168.80.0/24` enthalten. Wenn dein LAN-Netz anders heißt, `UNRAID_NETWORK` entsprechend ändern. Die Compose-Datei nutzt dieses bestehende Netz; sie ändert weder Router noch UNRAID-Netzwerkeinstellungen.
+Das vorhandene benutzerdefinierte LAN-Netz muss den Bereich deiner gewählten App-IP enthalten. Wenn dein LAN-Netz anders heißt, `UNRAID_NETWORK` entsprechend ändern. Die Compose-Datei nutzt dieses bestehende Netz; sie ändert weder Router noch UNRAID-Netzwerkeinstellungen.
 
 Mit Docker Compose (z. B. über bereits installierten Compose Manager):
 
@@ -44,33 +44,33 @@ Alternativ ohne Compose das Image im Projektordner bauen:
 docker build -t kistenkompass:local .
 ```
 
-Dann `deploy/my-kistenkompass.xml` nach `/boot/config/plugins/dockerMan/templates-user/` kopieren, im UNRAID-Docker-Tab **Add Container** wählen und die Vorlage `KistenKompass` auswählen. Bei **Fixed IP address** die gewählte freie LAN-IP eintragen. Netzwerk `Custom: br0`, Appdata-Pfad und Variablen kontrollieren. Das Image ist lokal gebaut; für Updates erneut bauen und den Container mit dem neuen Image neu erstellen. Entweder Compose oder die UNRAID-Vorlage zur Verwaltung verwenden.
+Dann `deploy/my-kistenkompass.xml` nach `/boot/config/plugins/dockerMan/templates-user/` kopieren, im UNRAID-Docker-Tab **Add Container** wählen und die Vorlage `KistenKompass` auswählen. Image-Repository auf `kistenkompass:local` und WebUI auf deine HTTPS-Adresse setzen. Bei **Fixed IP address** die gewählte freie LAN-IP eintragen. Netzwerk `Custom: br0`, Appdata-Pfad und Variablen kontrollieren. Das Image ist lokal gebaut; für Updates erneut bauen und den Container mit dem neuen Image neu erstellen. Entweder Compose oder die UNRAID-Vorlage zur Verwaltung verwenden.
 
 ## 3. Nginx Proxy Manager
 
-Auf `192.168.80.2` einen **Proxy Host** einrichten:
+Auf `192.0.2.2` einen **Proxy Host** einrichten:
 
 | Feld | Wert |
 |---|---|
-| Domain Names | `umzug.itwag.de` |
+| Domain Names | `umzug.example.com` |
 | Scheme | `http` |
 | Forward Hostname / IP | gewählte `APP_IP` |
 | Forward Port | `3000` |
 | Cache Assets | aus |
 | Websockets Support | für den aktuellen Funktionsumfang nicht erforderlich |
-| SSL Certificate | gültiges Zertifikat für `umzug.itwag.de` auswählen/erstellen |
+| SSL Certificate | gültiges Zertifikat für `umzug.example.com` auswählen/erstellen |
 | Force SSL | an |
 | HTTP/2 Support | an |
 
-Die normalen NPM-Proxy-Header genügen; kein eigener `location /`-Block ist nötig. Die App erwartet den ursprünglichen Host sowie `X-Forwarded-Proto` und `X-Forwarded-For`. Vertraut wird ausschließlich dem Proxy `192.168.80.2`. Wenn NPM durch NAT mit anderer Quell-IP am App-Container ankommt, genau diese Adresse in `TRUST_PROXY` eintragen; nicht pauschal alle Proxies freigeben.
+Die normalen NPM-Proxy-Header genügen; kein eigener `location /`-Block ist nötig. Die App erwartet den ursprünglichen Host sowie `X-Forwarded-Proto` und `X-Forwarded-For`. Vertraut wird ausschließlich dem Proxy `192.0.2.2`. Wenn NPM durch NAT mit anderer Quell-IP am App-Container ankommt, genau diese Adresse in `TRUST_PROXY` eintragen; nicht pauschal alle Proxies freigeben.
 
-Den Proxy Host für die erste Einrichtung mit einer NPM-Access-List auf deinen Zugriff beschränken. Unter `https://umzug.itwag.de` das erste Administratorkonto einrichten, danach die gewünschte externe Erreichbarkeit aktivieren. Bei übernommener Datenbank mit Konten die bestehende Anmeldung nutzen.
+Den Proxy Host für die erste Einrichtung mit einer NPM-Access-List auf deinen Zugriff beschränken. Unter `https://umzug.example.com` das erste Administratorkonto einrichten, danach die gewünschte externe Erreichbarkeit aktivieren. Bei übernommener Datenbank mit Konten die bestehende Anmeldung nutzen.
 
-Intern muss `umzug.itwag.de` ebenfalls auf NPM (`192.168.80.2`) auflösen, oder der Router muss Hairpin NAT unterstützen. Extern zeigt der DNS-Eintrag auf deine öffentliche Adresse; die bestehenden Routerfreigaben 80/443 führen zu NPM. Den App-Port 3000 nicht zum Internet weiterleiten. Neue QR-Etiketten verwenden immer `https://umzug.itwag.de`, auch wenn die Seite über eine interne Adresse geöffnet wird.
+Intern muss `umzug.example.com` ebenfalls auf NPM (`192.0.2.2`) auflösen, oder der Router muss Hairpin NAT unterstützen. Extern zeigt der DNS-Eintrag auf deine öffentliche Adresse; die bestehenden Routerfreigaben 80/443 führen zu NPM. Den App-Port 3000 nicht zum Internet weiterleiten. Neue QR-Etiketten verwenden immer `https://umzug.example.com`, auch wenn die Seite über eine interne Adresse geöffnet wird.
 
 ## 4. Funktion prüfen
 
-- `https://umzug.itwag.de/api/health` liefert `{"ok":true}`.
+- `https://umzug.example.com/api/health` liefert `{"ok":true}`.
 - Anmeldung, Umzug anlegen und Karton speichern über die HTTPS-Domain prüfen.
 - Sitzungscookie `kk_session` trägt `Secure`, `HttpOnly` und `SameSite=Strict`.
 - Ein QR-Etikett öffnen und prüfen, dass Domain und Umzug korrekt sind.

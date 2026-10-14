@@ -20,7 +20,7 @@ Falls die Seite nicht erreichbar ist: die IPv4-Adresse des aktiven Ethernet-/WLA
 
 Für Veröffentlichungen über GitHub Container Registry und Updates über den UNRAID-Docker-Tab: [deploy/GHCR.md](deploy/GHCR.md). Der vorbereitete GitHub-Workflow veröffentlicht getestete Images bei einem Release.
 
-Vorbereitet für `https://umzug.itwag.de`, Proxy `192.168.80.2` und eine eigene LAN-IP im Netz `192.168.80.0/24`. Die freie App-IP wird in `.env` eingetragen. Vollständige Anleitung mit Compose und UNRAID-Docker-Vorlage: [deploy/UNRAID.md](deploy/UNRAID.md).
+Eigene HTTPS-Adresse, Proxy-IP und freie LAN-IP werden in `.env` eingetragen. Vollständige Anleitung mit Compose und UNRAID-Docker-Vorlage: [deploy/UNRAID.md](deploy/UNRAID.md).
 
 ## Stand und nächste Schritte
 

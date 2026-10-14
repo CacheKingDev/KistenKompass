@@ -14,7 +14,7 @@ Der Workflow `.github/workflows/publish-image.yml` testet und baut bei veröffen
 
 Die Anleitung `deploy/UNRAID.md` gilt für Datenverzeichnis, UID/GID 1000, freie LAN-IP, Nginx Proxy Manager und Funktionsprüfung weiterhin.
 
-Für die Unraid-Docker-Verwaltung die vorhandene Vorlage `deploy/my-kistenkompass.xml` nach `/boot/config/plugins/dockerMan/templates-user/` kopieren. Unter Docker → Add Container die Vorlage auswählen und Repository von `kistenkompass:local` auf `ghcr.io/DEINNAME/kistenkompass:stable` ändern. Kein lokaler Image-Build ist nötig. Netzwerk `Custom: br0`, freie feste App-IP, Appdata-Zuordnung nach `/data`, PUBLIC_URL und TRUST_PROXY prüfen, dann starten. Autostart aktivieren. Dieses Deployment über die Unraid-Vorlage verwalten.
+Für die Unraid-Docker-Verwaltung die vorhandene Vorlage `deploy/my-kistenkompass.xml` nach `/boot/config/plugins/dockerMan/templates-user/` kopieren. Unter Docker → Add Container die Vorlage auswählen und das leere Repository-Feld auf `ghcr.io/DEINNAME/kistenkompass:stable` ändern. Kein lokaler Image-Build ist nötig. WebUI auf die eigene HTTPS-Adresse und Netzwerk auf `Custom: br0` setzen; freie feste App-IP, Appdata-Zuordnung nach `/data`, PUBLIC_URL und TRUST_PROXY prüfen, dann starten. Autostart aktivieren. Dieses Deployment über die Unraid-Vorlage verwalten.
 
 ## Updates
 
