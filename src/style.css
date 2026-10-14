@@ -78,6 +78,13 @@ input,select,textarea{font-size:16px}
 .label-more{list-style:none;font-weight:bold}
 
 .box-type-select{min-height:44px;min-width:0;font-size:16px}
+/* Keep the carton form within the viewport, including Safari's native date control. */
+.overlay:has([aria-labelledby="box-edit-title"]){overflow-x:hidden}
+.dialog[aria-labelledby="box-edit-title"]{width:100%;min-width:0;overflow-x:hidden;overflow-wrap:anywhere}
+.dialog[aria-labelledby="box-edit-title"] .columns{grid-template-columns:repeat(2,minmax(0,1fr))}
+.dialog[aria-labelledby="box-edit-title"] .columns>*,.dialog[aria-labelledby="box-edit-title"] input,.dialog[aria-labelledby="box-edit-title"] select,.dialog[aria-labelledby="box-edit-title"] textarea{min-width:0;max-width:100%}
+.dialog[aria-labelledby="box-edit-title"] .room-select-trigger>span{min-width:0;overflow-wrap:anywhere}
+@media(max-width:650px){.dialog[aria-labelledby="box-edit-title"] .columns{grid-template-columns:minmax(0,1fr)}}
 .workspace-bar{max-width:1280px;margin:auto;padding:20px 32px 0;display:flex;align-items:center;gap:12px;flex-wrap:wrap}.workspace-bar label{display:flex;align-items:center;gap:12px;flex:1;min-width:240px}.workspace-bar select{min-width:0;max-width:440px}.workspace-bar span{overflow-wrap:anywhere}.auth{max-width:560px}.auth label{display:block;margin:18px 0}.auth input{margin-top:6px}.management-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;margin-top:20px}.management-list p,.management-list h3{overflow-wrap:anywhere}.member-check{display:flex!important;align-items:center;gap:10px;min-height:44px;margin:6px 0!important}.member-check input{width:22px;height:22px;flex:0 0 22px;margin:0!important}fieldset{min-width:0;border:1px solid #ccd5cf;border-radius:8px;margin-bottom:16px}button:disabled{opacity:.5;cursor:default}.dialog{max-height:none}.main-nav button{min-width:44px}.box-tools .search{font-size:16px}@media(max-width:650px){.workspace-bar{padding:16px 14px 0}.workspace-bar label{flex-basis:100%;display:block}.workspace-bar select{max-width:none;margin-top:6px}.workspace-bar span{flex:1}.management-list{grid-template-columns:minmax(0,1fr)}.dialog{padding-bottom:max(20px,env(safe-area-inset-bottom))}.overlay{height:100dvh}.app{padding-top:20px}}
 @media(max-width:650px){.workspace-bar label{order:-2}.workspace-bar span{order:-1;flex-basis:100%}.workspace-bar button{flex:1}.workspace-bar{padding-top:max(16px,env(safe-area-inset-top))}}
 @media(min-width:651px) and (max-width:900px){.auth{gap:24px;grid-template-columns:minmax(0,.8fr) minmax(340px,1fr)}.auth-brand h1{font-size:24px}.auth .settings-panel{padding:20px}.auth-art p{font-size:18px}}
@@ -153,3 +160,5 @@ html:has(.selection-active){scroll-padding-bottom:180px}.selection-active input:
 :root[data-theme=dark] .workspace-bar .profile-menu button:hover{background:#363636}
 :root[data-theme=dark] .workspace-bar .profile-menu .profile-signout{color:#f0a6a1}
 @media(max-width:650px){.about-brand{align-items:flex-start;gap:12px}.about-brand h1{font-size:24px}.about-brand img{width:48px;height:48px}.about-details dl>div{flex-direction:column;gap:6px}.about-details dd{text-align:left}}
+
+.avatar-picker{display:flex;align-items:center;gap:16px;margin:20px 0 24px}.avatar-picker>img{flex:none;border-radius:50%;background:#eef3eb}.avatar-picker>div{min-width:0}.avatar-picker button{display:flex;align-items:center;gap:10px;min-height:44px}.avatar-picker p{font-size:14px;line-height:1.5;margin:8px 0 0;color:#677970}:root[data-theme=dark] .avatar-picker p{color:#bdbdbd}@media(max-width:380px){.avatar-picker{gap:12px}.avatar-picker>img{width:64px;height:64px}}
