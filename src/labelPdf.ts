@@ -10,7 +10,7 @@ export function createLabelPdf(labels:Label[]){
  labels.forEach(({box,qr,room},index)=>{
   if(index&&index%4===0)pdf.addPage();
   const slot=index%4,x=26+(slot%2)*125,y=5+Math.floor(slot/2)*100;
-  pdf.setTextColor(0);pdf.setDrawColor(85);pdf.setLineWidth(.3);pdf.setLineDashPattern([1,1],0);
+  pdf.setTextColor(0);pdf.setDrawColor(85);pdf.setLineWidth(.1);pdf.setLineDashPattern([1,1],0);
   pdf.rect(x+1.5,y+1.5,117,97);pdf.setLineDashPattern([],0);
   pdf.setFont('helvetica','normal');pdf.setFontSize(8);pdf.text('KARTON',x+5,y+8);
   pdf.setFont('helvetica','bold');pdf.setFontSize(28);

@@ -17,3 +17,7 @@ KistenKompass MUSS auf dem iPhone komfortabel bedienbar sein und gleichzeitig al
 - Fotos durch Antippen in einer großen, bildschirmangepassten Ansicht öffnen. Wechseln, Vergrößern und Schließen müssen per Touch und Tastatur erreichbar sein; Safe Areas und Hoch-/Querformat berücksichtigen.
 - Auf dem iPhone keinen eigenen sichtbaren Entfernen-Button unter jedem Foto anzeigen. Fotoaktionen in einem Menü bündeln, das durch langes Drücken erreichbar ist. Eine beschriftete Drei-Punkte-Schaltfläche als zugängliche Alternative anbieten; Scrollbewegungen dürfen keinen langen Druck auslösen.
 - Entfernen von Fotos rückgängig machen können. Leseansichten enthalten keine Fotoänderungsaktionen.
+
+## Etiketten
+
+- Gestrichelte Schnittlinien fein und dezent gestalten: 0,1 mm Strichstärke in der erzeugten PDF und in der Bildschirmvorschau. Keine dicken Rahmen verwenden.
