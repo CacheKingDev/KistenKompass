@@ -9,6 +9,8 @@ export function LabelContents({items}:{items:string[]}){
    const marker=rows.pop()!;
    rows.forEach((row,index)=>{row.hidden=false;row.textContent=items[index];});
    marker.hidden=true;
+   // Hidden preview copies have no layout; keep their full contents for printing.
+   if(!element.getClientRects().length||element.clientHeight===0)return;
    if(element.scrollHeight<=element.clientHeight)return;
    marker.hidden=false;
    for(let index=rows.length-1;index>=0&&element.scrollHeight>element.clientHeight;index--){

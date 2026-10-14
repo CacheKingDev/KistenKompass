@@ -16,6 +16,11 @@ test('HTTP schützt Daten und Adminaktionen; zugewiesene Umzüge und QR-Ziele bl
  const assigned=(await request('/api/moves',{name:'Gemeinsam',date:'2026-11-01',origin:'A',destination:'B',userIds:[helper]})).body.id;
  const room=(await request('/api/rooms?move='+other,{name:'Küche',color:'#123456'})).body.id;
  const b={name:'Tassen',roomId:room,items:['Tasse'],type:'Umzugskarton',fragile:true,heavy:false,status:'Gepackt'};const box=(await request('/api/boxes?move='+other,b)).body.id;
+ assert.equal((await request('/api/rooms/'+room+'?move='+other,{},'DELETE','')).status,401);
+ assert.equal((await request('/api/rooms/'+room+'?move='+assigned,{},'DELETE')).status,404);
+ const emptyRoom=(await request('/api/rooms?move='+other,{name:'Leer',color:'#123456'})).body.id;
+ assert.equal((await request('/api/rooms/'+emptyRoom+'?move='+other,{},'DELETE')).status,200);
+ assert.equal((await request('/api/rooms/'+emptyRoom+'?move='+other,{},'DELETE')).status,404);
  const photoData='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jZioAAAAASUVORK5CYII=';
  assert.equal((await request('/api/boxes/'+box+'?move='+other,{...b,photos:[{data:photoData}]},'PUT')).status,200);
  const photoId=(await request('/api/data?move='+other)).body.boxes[0].photos[0].id;
@@ -28,6 +33,16 @@ test('HTTP schützt Daten und Adminaktionen; zugewiesene Umzüge und QR-Ziele bl
  assert.equal((await request('/api/boxes?move='+assigned,b)).status,400);assert.equal((await request('/api/boxes/'+box+'?move='+assigned,{...b,roomId:''},'PUT')).status,400);
  assert.equal((await request('/api/box-types?move='+assigned,{name:'Test',length:1,width:1,height:1})).status,403);
  assert.equal((await request('/api/boxes?move='+assigned,{...b,roomId:''})).status,200);assert.equal((await request('/api/data?move='+assigned)).body.boxes.length,1);assert.equal((await request('/api/data?move='+other,undefined,'GET',admin)).body.boxes[0].id,box);
+ const deletable=(await request('/api/rooms?move='+assigned,{name:'Entfernen',color:'#123456'})).body.id;
+ const keep=(await request('/api/boxes?move='+assigned,{...b,roomId:deletable})).body.id;
+ assert.equal((await request('/api/rooms/'+room+'?move='+other,{},'DELETE')).status,403);
+ assert.equal((await request('/api/rooms/'+deletable+'?move='+assigned,{},'DELETE')).status,200);
+ const afterRoomDelete=(await request('/api/data?move='+assigned)).body;
+ assert.ok(!afterRoomDelete.rooms.some((r:{id:string})=>r.id===deletable));
+ assert.equal(afterRoomDelete.boxes.find((b:{id:string})=>b.id===keep).roomId,null);
+ assert.equal(afterRoomDelete.boxes.find((b:{id:string})=>b.id===keep).name,'Tassen');
+ assert.equal((await request('/api/data?move='+other,undefined,'GET',admin)).body.rooms[0].id,room);
+ assert.equal((await request('/api/boxes/'+keep+'?move='+assigned,{},'DELETE')).status,200);
  assert.equal((await request('/api/moves/'+assigned,{},'DELETE')).status,403);
  assert.equal((await request('/api/moves/missing',{},'DELETE',admin)).status,404);
  assert.equal((await request('/api/moves/'+other,{},'DELETE',admin)).status,200);

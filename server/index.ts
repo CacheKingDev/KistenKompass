@@ -28,6 +28,13 @@ app.delete('/api/moves/:id',admin,(req,res)=>{try{accounts.deleteMove(String(req
 app.get('/api/moves',(_req,res)=>res.json(accounts.moves(res.locals.user)));
 for(const method of ['post','put'] as const)app[method]('/api/moves'+(method==='put'?'/:id':''),(req,res)=>{try{res.json({id:accounts.saveMove(req.body,res.locals.user,method==='put'?String(req.params.id):undefined)});}catch(e){res.status(400).json({error:(e as Error).message});}});
 app.use('/api',(req,res,next)=>{const move=String(req.query.move||'initial');if(!accounts.moves(res.locals.user).some(m=>m.id===move))return res.status(403).json({error:'Kein Zugriff auf diesen Umzug'});res.locals.move=move;next();});
+app.delete('/api/rooms/:id',(req,res)=>{
+ const id=String(req.params.id),move=res.locals.move;
+ if(!store.db.prepare('SELECT id FROM rooms WHERE id=? AND moveId=?').get(id,move))return res.status(404).json({error:'Raum nicht gefunden'});
+ store.db.exec('BEGIN');
+ try{store.db.prepare('UPDATE boxes SET roomId=NULL WHERE roomId=? AND moveId=?').run(id,move);store.db.prepare('DELETE FROM rooms WHERE id=? AND moveId=?').run(id,move);store.db.exec('COMMIT');res.json({ok:true});}
+ catch{store.db.exec('ROLLBACK');res.status(409).json({error:'Raum konnte nicht gelöscht werden. Bitte erneut versuchen.'});}
+});
 app.get('/api/data',(_req,res)=>res.json({rooms:store.rooms(res.locals.move),boxes:store.boxes(res.locals.move),boxTypeDetails:store.boxTypeDetails(),volume:store.volumeSummary(res.locals.move)}));
 for(const method of ['post','put'] as const)app[method]('/api/box-types'+(method==='put'?'/:name':''),admin,(req,res)=>{try{res.json(store.saveBoxType(req.body,method==='put'?String(req.params.name):undefined));}catch(e){res.status(400).json({error:(e as Error).message});}});
 for(const method of ['post','put'] as const)app[method]('/api/rooms'+(method==='put'?'/:id':''),(req,res)=>{const {name,color}=req.body;if(typeof name!=='string'||!name.trim()||typeof color!=='string'||!/^#[0-9a-f]{6}$/i.test(color))return res.status(400).json({error:'Name und gültige Raumfarbe erforderlich'});const id=method==='put'?String(req.params.id):crypto.randomUUID();if(method==='put'){const result=store.db.prepare('UPDATE rooms SET name=?,color=? WHERE id=? AND moveId=?').run(name.trim(),color,id,res.locals.move);if(!result.changes)return res.status(404).json({error:'Raum nicht gefunden'});}else store.db.prepare('INSERT INTO rooms(id,name,color,moveId) VALUES(?,?,?,?)').run(id,name.trim(),color,res.locals.move);res.json({id});});
