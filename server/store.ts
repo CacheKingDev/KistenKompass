@@ -15,6 +15,7 @@ export class Store {
  defaults.run(54,39,24,'Bananenkarton');
  defaults.run(60,33,34,'Umzugskarton');
  this.migrateBoxNumbers();
+ if(!this.db.prepare('PRAGMA table_info(boxes)').all().some(c=>c.name==='currentLocation'))this.db.exec("ALTER TABLE boxes ADD COLUMN currentLocation TEXT NOT NULL DEFAULT ''");
  this.db.exec('CREATE TABLE IF NOT EXISTS box_photos(id TEXT PRIMARY KEY,boxId TEXT NOT NULL REFERENCES boxes(id) ON DELETE CASCADE,mime TEXT NOT NULL,data BLOB NOT NULL)');
  }
  private migrateBoxNumbers(){
@@ -57,7 +58,19 @@ export class Store {
  this.db.prepare('INSERT INTO box_types(name) VALUES(?)').run(value);
  return value;
  }
- boxes(moveId?:string){return (moveId?this.db.prepare('SELECT * FROM boxes WHERE moveId=? ORDER BY number').all(moveId):this.db.prepare('SELECT * FROM boxes ORDER BY number').all()).map(b=>({...b,id:String(b.id),name:String(b.name),number:Number(b.number),status:String(b.status),type:String(b.type),photos:this.db.prepare('SELECT id FROM box_photos WHERE boxId=? ORDER BY rowid').all(b.id).map(p=>({id:String(p.id)})),items:JSON.parse(String(b.items)) as string[],fragile:!!b.fragile,heavy:!!b.heavy}));}
+ boxes(moveId?:string){return (moveId?this.db.prepare('SELECT * FROM boxes WHERE moveId=? ORDER BY number').all(moveId):this.db.prepare('SELECT * FROM boxes ORDER BY number').all()).map(b=>({...b,id:String(b.id),name:String(b.name),number:Number(b.number),currentLocation:String(b.currentLocation||''),status:String(b.status),type:String(b.type),photos:this.db.prepare('SELECT id FROM box_photos WHERE boxId=? ORDER BY rowid').all(b.id).map(p=>({id:String(p.id)})),items:JSON.parse(String(b.items)) as string[],fragile:!!b.fragile,heavy:!!b.heavy}));}
+ updateBoxes(ids:unknown,changes:unknown,moveId:string){
+ if(!Array.isArray(ids)||!ids.length||ids.length>2000||ids.some(id=>typeof id!=='string'||!id)||new Set(ids).size!==ids.length)throw Error('Bitte gültige Kartons auswählen (höchstens 2000).');
+ if(!changes||typeof changes!=='object'||Array.isArray(changes))throw Error('Ungültige Änderungen');
+ const entries=Object.entries(changes);
+ if(!entries.length||entries.some(([key,value])=>!['currentLocation','status','transporter'].includes(key)||typeof value!=='string'||(key==='status'?!['In Vorbereitung','Gepackt','Transportiert','Angekommen','Ausgepackt'].includes(value):value.length>200)))throw Error('Ungültige Änderungen');
+ this.db.exec('BEGIN IMMEDIATE');try{
+ const statement=this.db.prepare('UPDATE boxes SET '+entries.map(([key])=>key+'=?').join(',')+' WHERE id=? AND moveId=?');
+ const values=entries.map(([,value])=>(value as string).trim());
+ for(const id of ids)if(!statement.run(...values,id,moveId).changes)throw Error('Mindestens ein Karton ist nicht mehr verfügbar. Es wurde nichts geändert.');
+ this.db.exec('COMMIT');return ids.length;
+ }catch(error){this.db.exec('ROLLBACK');throw error;}
+ }
  setBoxHandling(id:string,data:unknown,moveId:string){
  if(!data||typeof data!=='object'||Array.isArray(data))throw Error('Ungültige Kennzeichnungen');
  const entries=Object.entries(data);
@@ -91,8 +104,10 @@ export class Store {
  private saveBoxData(b:any,id?:string,moveId?:string){
  if(moveId){if(id&&!this.db.prepare('SELECT id FROM boxes WHERE id=? AND moveId=?').get(id,moveId))throw Error('Karton nicht gefunden');if(b.roomId&&!this.db.prepare('SELECT id FROM rooms WHERE id=? AND moveId=?').get(b.roomId,moveId))throw Error('Raum gehört zu einem anderen Umzug');}
  if(!b || typeof b.name!=='string'|| !b.name.trim() || !Array.isArray(b.items)||b.items.some((i:any)=>typeof i!=='string')|| !['In Vorbereitung','Gepackt','Transportiert','Angekommen','Ausgepackt'].includes(b.status)||typeof b.type!=='string'|| typeof b.fragile!=='boolean'||typeof b.heavy!=='boolean')throw new Error('Ungültige Kartondaten');
- const values=[b.name.trim(),b.roomId||null,JSON.stringify(b.items),b.type,b.fragile?1:0,b.heavy?1:0,b.status,String(b.transporter||''),String(b.departed||'')];
- if(id){const result=this.db.prepare('UPDATE boxes SET name=?,roomId=?,items=?,type=?,fragile=?,heavy=?,status=?,transporter=?,departed=? WHERE id=?').run(...values,id);if(!result.changes)throw new Error('Karton nicht gefunden');return id;}
- const targetMove=moveId||'initial';const row=this.db.prepare('WITH candidates(number) AS (SELECT 1 UNION ALL SELECT number+1 FROM boxes WHERE moveId=?) SELECT MIN(number) AS value FROM candidates WHERE NOT EXISTS (SELECT 1 FROM boxes WHERE moveId=? AND boxes.number=candidates.number)').get(targetMove,targetMove)!;const key=crypto.randomUUID();this.db.prepare('INSERT INTO boxes(name,roomId,items,type,fragile,heavy,status,transporter,departed,id,number,moveId) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)').run(...values,key,Number(row.value),targetMove);return key;
+ if(b.currentLocation!==undefined&&(typeof b.currentLocation!=='string'||b.currentLocation.length>200))throw Error('Standort darf höchstens 200 Zeichen enthalten');
+ const currentLocation=b.currentLocation===undefined&&id?String(this.db.prepare('SELECT currentLocation FROM boxes WHERE id=?').get(id)?.currentLocation||''):String(b.currentLocation||'').trim();
+ const values=[b.name.trim(),b.roomId||null,JSON.stringify(b.items),b.type,b.fragile?1:0,b.heavy?1:0,b.status,String(b.transporter||''),String(b.departed||''),currentLocation];
+ if(id){const result=this.db.prepare('UPDATE boxes SET name=?,roomId=?,items=?,type=?,fragile=?,heavy=?,status=?,transporter=?,departed=?,currentLocation=? WHERE id=?').run(...values,id);if(!result.changes)throw new Error('Karton nicht gefunden');return id;}
+ const targetMove=moveId||'initial';const row=this.db.prepare('WITH candidates(number) AS (SELECT 1 UNION ALL SELECT number+1 FROM boxes WHERE moveId=?) SELECT MIN(number) AS value FROM candidates WHERE NOT EXISTS (SELECT 1 FROM boxes WHERE moveId=? AND boxes.number=candidates.number)').get(targetMove,targetMove)!;const key=crypto.randomUUID();this.db.prepare('INSERT INTO boxes(name,roomId,items,type,fragile,heavy,status,transporter,departed,currentLocation,id,number,moveId) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)').run(...values,key,Number(row.value),targetMove);return key;
  }
 }

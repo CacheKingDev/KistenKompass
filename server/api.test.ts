@@ -36,11 +36,21 @@ test('HTTP schützt Daten und Adminaktionen; zugewiesene Umzüge und QR-Ziele bl
  assert.equal((await request(handlingPath+other,{heavy:'yes'},'PATCH')).status,400);
  assert.equal((await request(handlingPath+other,{name:'Nicht ändern'},'PATCH')).status,400);
  assert.equal((await request(handlingPath+other,{heavy:false,fragile:true},'PATCH')).status,200);
+ const bulkPath='/api/boxes/bulk?move=';
+ assert.equal((await request(bulkPath+other,{ids:[box],changes:{status:'Transportiert'}},'PATCH','')).status,401);
+ assert.equal((await request(bulkPath+assigned,{ids:[box],changes:{status:'Transportiert'}},'PATCH')).status,400);
+ assert.equal((await request(bulkPath+other,{ids:[box,'missing'],changes:{status:'Transportiert'}},'PATCH')).status,400);
+ assert.deepEqual((await request('/api/data?move='+other)).body.boxes[0],beforeHandling);
+ assert.equal((await request(bulkPath+other,{ids:[box],changes:{status:'Transportiert',currentLocation:'Transporter',transporter:'Anna'}},'PATCH')).status,200);
+ assert.deepEqual((await request('/api/data?move='+other)).body.boxes[0],{...beforeHandling,status:'Transportiert',currentLocation:'Transporter',transporter:'Anna'});
+ assert.equal((await request(bulkPath+other,{ids:[box],changes:{status:'Gepackt',currentLocation:'',transporter:''}},'PATCH')).status,200);
+
 
  assert.equal((await fetch(base+photoPath+'?move='+other)).status,401);
  const photoResponse=await fetch(base+photoPath+'?move='+other,{headers:{Cookie:admin}});assert.equal(photoResponse.status,200);assert.equal(photoResponse.headers.get('content-type'),'image/png');assert.ok((await photoResponse.arrayBuffer()).byteLength>0);
  assert.equal((await request(photoPath+'?move='+assigned)).status,404);
  cookie=(await request('/api/login',{username:'helper',password:'helper-password'})).cookie!;
+ assert.equal((await request(bulkPath+other,{ids:[box],changes:{status:'Transportiert'}},'PATCH')).status,403);
  assert.equal((await request(handlingPath+other,{heavy:true},'PATCH')).status,403);
  assert.equal((await request(photoPath+'?move='+other)).status,403);assert.equal((await request(photoPath+'?move='+assigned)).status,404);assert.equal((await request('/api/users')).status,403);assert.equal((await request('/api/data?move='+other)).status,403);assert.equal((await request('/api/moves')).body.length,1);
  assert.equal((await request('/api/boxes?move='+assigned,b)).status,400);assert.equal((await request('/api/boxes/'+box+'?move='+assigned,{...b,roomId:''},'PUT')).status,400);

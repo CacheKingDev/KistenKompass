@@ -30,7 +30,7 @@ test('Jeder Umzug beginnt bei 001 und verwendet freie Nummern nach Löschen und 
  const dir=mkdtempSync(join(tmpdir(),'kistenkompass-numbers-')),path=join(dir,'test.sqlite');let s:Store|undefined;
  try{s=new Store(path);s.saveBox(box,undefined,'a');s.saveBox(box,undefined,'a');const removed=s.saveBox(box,undefined,'b');
  assert.deepEqual(s.boxes('a').map(b=>b.number),[1,2]);assert.equal(s.boxes('b')[0].number,1);
- assert.throws(()=>s!.db.prepare('INSERT INTO boxes SELECT ?,number,name,roomId,items,type,fragile,heavy,status,transporter,departed,moveId FROM boxes WHERE id=?').run('duplicate',removed));
+ assert.throws(()=>s!.db.prepare('INSERT INTO boxes SELECT ?,number,name,roomId,items,type,fragile,heavy,status,transporter,departed,moveId,currentLocation FROM boxes WHERE id=?').run('duplicate',removed));
  s.db.prepare('DELETE FROM boxes WHERE id=?').run(removed);s.db.close();s=new Store(path);
  s.saveBox(box,undefined,'b');s.saveBox(box,undefined,'c');assert.equal(s.boxes('b')[0].number,1);assert.equal(s.boxes('c')[0].number,1);
  assert.throws(()=>s!.saveBox({...box,roomId:'missing'},undefined,'c'));s.saveBox(box,undefined,'c');assert.deepEqual(s.boxes('c').map(b=>b.number),[1,2]);
@@ -45,7 +45,7 @@ test('Migration erhält alte Nummern und Inhalte; freie Nummern werden wieder ve
  CREATE TABLE moves(id TEXT PRIMARY KEY,name TEXT,date TEXT,origin TEXT,destination TEXT);INSERT INTO moves VALUES('initial','Alt','','',''),('empty','Leer','','','');
  INSERT INTO rooms VALUES('r','Küche','#123456');
  INSERT INTO boxes VALUES('old',2,'Kaffee','r','["Kaffeemaschine"]','Umzugskarton',1,0,'Gepackt','','','initial');`);
- const before=db.prepare('SELECT * FROM boxes').all();db.close();s=new Store(path);
+ const before=db.prepare('SELECT * FROM boxes').all();before.forEach(row=>{row.currentLocation='';});db.close();s=new Store(path);
  assert.deepEqual(s.db.prepare('SELECT * FROM boxes').all(),before);assert.deepEqual(s.db.prepare('PRAGMA foreign_key_check').all(),[]);
  s.saveBox(box,undefined,'initial');s.saveBox(box,undefined,'empty');s.saveBox(box,undefined,'new');
  assert.deepEqual(s.boxes('initial').map(b=>b.number),[1,2]);assert.equal(s.boxes('empty')[0].number,1);assert.equal(s.boxes('new')[0].number,1);
@@ -141,4 +141,36 @@ test('Schnellkennzeichnungen ändern nur gewünschte Felder und bleiben nach Neu
  s.db.close();s=new Store(path);assert.deepEqual(s.boxes('a')[0],{...before,heavy:true,fragile:false});
  s.setBoxHandling(id,{heavy:false,fragile:true},'a');assert.deepEqual(s.boxes('a')[0],before);
  }finally{s?.db.close();rmSync(dir,{recursive:true,force:true});}
+});
+
+test('Aktueller Standort bleibt bei alten Clients und Schnellaktionen erhalten, lässt sich löschen und übersteht Neustart',()=>{
+ const dir=mkdtempSync(join(tmpdir(),'kistenkompass-location-')),path=join(dir,'test.sqlite');let s:Store|undefined;
+ try{s=new Store(path);const id=s.saveBox({...box,currentLocation:' Garage '},undefined,'a');
+ assert.equal(s.boxes('a')[0].currentLocation,'Garage');
+ s.saveBox({...box,name:'Neuer Name'},id,'a');s.setBoxHandling(id,{heavy:true},'a');assert.equal(s.boxes('a')[0].currentLocation,'Garage');
+ assert.throws(()=>s!.saveBox({...box,currentLocation:'Transporter'},id,'b'),/nicht gefunden/);
+ assert.throws(()=>s!.saveBox({...box,currentLocation:42},id,'a'),/Standort/);
+ assert.throws(()=>s!.saveBox({...box,currentLocation:'x'.repeat(201)},id,'a'),/Standort/);
+ s.db.close();s=new Store(path);assert.equal(s.boxes('a')[0].currentLocation,'Garage');
+ s.saveBox({...box,currentLocation:'Transporter'},id,'a');assert.equal(s.boxes('a')[0].currentLocation,'Transporter');
+ s.saveBox({...box,currentLocation:''},id,'a');assert.equal(s.boxes('a')[0].currentLocation,'');
+ }finally{s?.db.close();rmSync(dir,{recursive:true,force:true});}
+});
+
+test('Mehrfachänderung ist atomar, schützt andere Umzüge und erhält alle nicht gewählten Angaben',()=>{
+ const s=new Store(':memory:');try{
+ const a=s.saveBox({...box,currentLocation:'Keller',transporter:'Anna'},undefined,'a');
+ const b=s.saveBox({...box,name:'Bücher',status:'In Vorbereitung',currentLocation:'Garage',transporter:'Ben',heavy:true},undefined,'a');
+ const foreign=s.saveBox(box,undefined,'b');const before=s.boxes('a'),other=s.boxes('b');
+ assert.equal(s.updateBoxes([a,b],{currentLocation:' Transporter '},'a'),2);
+ assert.deepEqual(s.boxes('a'),before.map(box=>({...box,currentLocation:'Transporter'})));
+ const snapshot=s.boxes('a');
+ assert.throws(()=>s.updateBoxes([a,foreign],{status:'Transportiert'},'a'),/nichts geändert/);assert.deepEqual(s.boxes('a'),snapshot);assert.deepEqual(s.boxes('b'),other);
+ assert.throws(()=>s.updateBoxes([a,'missing'],{transporter:'Neu'},'a'),/nichts geändert/);assert.deepEqual(s.boxes('a'),snapshot);
+ for(const changes of [{},null,{name:'Nein'},{photos:[]},{status:'Unbekannt'},{currentLocation:42},{transporter:'x'.repeat(201)}])assert.throws(()=>s.updateBoxes([a,b],changes,'a'));
+ for(const ids of [[],[a,a],[''],null,[a,42]])assert.throws(()=>s.updateBoxes(ids,{status:'Gepackt'},'a'));
+ assert.deepEqual(s.boxes('a'),snapshot);
+ s.updateBoxes([a,b],{currentLocation:'',transporter:'Chris',status:'Transportiert'},'a');
+ assert.deepEqual(s.boxes('a'),before.map(box=>({...box,currentLocation:'',transporter:'Chris',status:'Transportiert'})));
+ }finally{s.db.close();}
 });
