@@ -128,3 +128,17 @@ test('Abtransportdatum lässt sich löschen und erneut setzen',()=>{
  s.saveBox({...box,departed:'2026-10-16T09:00'},id,'a');assert.equal(s.db.prepare('SELECT departed FROM boxes WHERE id=?').get(id)?.departed,'2026-10-16T09:00');
  }finally{s.db.close();}
 });
+
+test('Schnellkennzeichnungen ändern nur gewünschte Felder und bleiben nach Neustart erhalten',()=>{
+ const dir=mkdtempSync(join(tmpdir(),'kistenkompass-handling-')),path=join(dir,'test.sqlite');let s:Store|undefined;
+ try{
+ s=new Store(path);const id=s.saveBox({...box,departed:'2026-10-15T10:30',transporter:'Anna'},undefined,'a');
+ const before=s.boxes('a')[0];
+ s.setBoxHandling(id,{heavy:true},'a');assert.deepEqual(s.boxes('a')[0],{...before,heavy:true});
+ s.setBoxHandling(id,{fragile:false},'a');assert.deepEqual(s.boxes('a')[0],{...before,heavy:true,fragile:false});
+ assert.throws(()=>s!.setBoxHandling(id,{heavy:false},'b'),/nicht gefunden/);
+ for(const data of [{},null,[],{heavy:'yes'},{name:'Änderung'},{heavy:false,fragile:null}])assert.throws(()=>s!.setBoxHandling(id,data,'a'),/Ungültige/);
+ s.db.close();s=new Store(path);assert.deepEqual(s.boxes('a')[0],{...before,heavy:true,fragile:false});
+ s.setBoxHandling(id,{heavy:false,fragile:true},'a');assert.deepEqual(s.boxes('a')[0],before);
+ }finally{s?.db.close();rmSync(dir,{recursive:true,force:true});}
+});

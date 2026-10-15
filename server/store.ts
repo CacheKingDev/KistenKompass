@@ -58,6 +58,13 @@ export class Store {
  return value;
  }
  boxes(moveId?:string){return (moveId?this.db.prepare('SELECT * FROM boxes WHERE moveId=? ORDER BY number').all(moveId):this.db.prepare('SELECT * FROM boxes ORDER BY number').all()).map(b=>({...b,id:String(b.id),name:String(b.name),number:Number(b.number),status:String(b.status),type:String(b.type),photos:this.db.prepare('SELECT id FROM box_photos WHERE boxId=? ORDER BY rowid').all(b.id).map(p=>({id:String(p.id)})),items:JSON.parse(String(b.items)) as string[],fragile:!!b.fragile,heavy:!!b.heavy}));}
+ setBoxHandling(id:string,data:unknown,moveId:string){
+ if(!data||typeof data!=='object'||Array.isArray(data))throw Error('Ungültige Kennzeichnungen');
+ const entries=Object.entries(data);
+ if(!entries.length||entries.some(([key,value])=>!['fragile','heavy'].includes(key)||typeof value!=='boolean'))throw Error('Ungültige Kennzeichnungen');
+ const result=this.db.prepare('UPDATE boxes SET '+entries.map(([key])=>key+'=?').join(',')+' WHERE id=? AND moveId=?').run(...entries.map(([,value])=>value?1:0),id,moveId);
+ if(!result.changes)throw Error('Karton nicht gefunden');
+ }
  deleteBox(id:string,moveId:string){if(!this.db.prepare('DELETE FROM boxes WHERE id=? AND moveId=?').run(id,moveId).changes)throw Error('Karton nicht gefunden');}
  photo(id:string,boxId:string,moveId:string){return this.db.prepare('SELECT p.mime,p.data FROM box_photos p JOIN boxes b ON b.id=p.boxId WHERE p.id=? AND b.id=? AND b.moveId=?').get(id,boxId,moveId);}
  saveBox(b:any,id?:string,moveId?:string){
