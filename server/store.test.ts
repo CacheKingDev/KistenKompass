@@ -120,3 +120,11 @@ test('Fotos bleiben nach Neustart erhalten, schützen Umzugsgrenzen und werden m
  s.saveBox({...box,photos:[{data}]},id,'a');s.deleteBox(id,'a');assert.equal(s.db.prepare('SELECT COUNT(*) AS n FROM box_photos').get()?.n,0);
  }finally{s?.db.close();rmSync(dir,{recursive:true,force:true});}
 });
+
+test('Abtransportdatum lässt sich löschen und erneut setzen',()=>{
+ const s=new Store(':memory:');try{
+ const id=s.saveBox({...box,departed:'2026-10-15T14:30'},undefined,'a');
+ s.saveBox({...box,departed:''},id,'a');assert.equal(s.db.prepare('SELECT departed FROM boxes WHERE id=?').get(id)?.departed,'');
+ s.saveBox({...box,departed:'2026-10-16T09:00'},id,'a');assert.equal(s.db.prepare('SELECT departed FROM boxes WHERE id=?').get(id)?.departed,'2026-10-16T09:00');
+ }finally{s.db.close();}
+});
