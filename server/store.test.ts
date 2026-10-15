@@ -6,6 +6,17 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {DatabaseSync} from 'node:sqlite';
 const box={name:'Kaffee',roomId:'',items:['Kaffeemaschine'],type:'Umzugskarton',fragile:true,heavy:false,status:'Gepackt',transporter:'',departed:''};
+
+test('Raumsymbol-Migration erhält alte Räume und Symbole nach Neustart',()=>{
+ const dir=mkdtempSync(join(tmpdir(),'kk-room-symbol-')),path=join(dir,'test.sqlite');
+ try{
+  const legacy=new DatabaseSync(path);legacy.exec("CREATE TABLE rooms(id TEXT PRIMARY KEY,name TEXT NOT NULL,color TEXT NOT NULL); INSERT INTO rooms VALUES('r','Küche','#123456')");legacy.close();
+  const first=new Store(path);
+  try{assert.deepEqual(first.rooms().map(room=>({...room})),[{id:'r',name:'Küche',color:'#123456',symbol:''}]);
+  first.db.prepare('UPDATE rooms SET symbol=? WHERE id=?').run('kitchen','r');}finally{first.db.close();}
+  const reopened=new Store(path);try{assert.equal(reopened.rooms()[0].symbol,'kitchen');assert.equal(reopened.rooms()[0].name,'Küche');}finally{reopened.db.close();}
+ }finally{rmSync(dir,{recursive:true,force:true});}
+});
 test('Neue Kartons füllen zuerst die kleinste Lücke; vorhandene Nummern und andere Umzüge bleiben erhalten',()=>{
  const s=new Store(':memory:');try{
  const ids=Array.from({length:5},()=>s.saveBox(box,undefined,'a'));s.saveBox(box,undefined,'b');

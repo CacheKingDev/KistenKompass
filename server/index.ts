@@ -1,3 +1,4 @@
+import {roomSymbols} from './roomSymbols.js';
 import express from 'express';
 import {mkdirSync} from 'node:fs';
 import {resolve} from 'node:path';
@@ -37,7 +38,17 @@ app.delete('/api/rooms/:id',(req,res)=>{
 });
 app.get('/api/data',(_req,res)=>res.json({rooms:store.rooms(res.locals.move),boxes:store.boxes(res.locals.move),boxTypeDetails:store.boxTypeDetails(),volume:store.volumeSummary(res.locals.move)}));
 for(const method of ['post','put'] as const)app[method]('/api/box-types'+(method==='put'?'/:name':''),admin,(req,res)=>{try{res.json(store.saveBoxType(req.body,method==='put'?String(req.params.name):undefined));}catch(e){res.status(400).json({error:(e as Error).message});}});
-for(const method of ['post','put'] as const)app[method]('/api/rooms'+(method==='put'?'/:id':''),(req,res)=>{const {name,color}=req.body;if(typeof name!=='string'||!name.trim()||typeof color!=='string'||!/^#[0-9a-f]{6}$/i.test(color))return res.status(400).json({error:'Name und gültige Raumfarbe erforderlich'});const id=method==='put'?String(req.params.id):crypto.randomUUID();if(method==='put'){const result=store.db.prepare('UPDATE rooms SET name=?,color=? WHERE id=? AND moveId=?').run(name.trim(),color,id,res.locals.move);if(!result.changes)return res.status(404).json({error:'Raum nicht gefunden'});}else store.db.prepare('INSERT INTO rooms(id,name,color,moveId) VALUES(?,?,?,?)').run(id,name.trim(),color,res.locals.move);res.json({id});});
+for(const method of ['post','put'] as const)app[method]('/api/rooms'+(method==='put'?'/:id':''),(req,res)=>{
+ const {name,color,symbol}=req.body;
+ if(typeof name!=='string'||!name.trim()||typeof color!=='string'||!/^#[0-9a-f]{6}$/i.test(color))return res.status(400).json({error:'Name und gültige Raumfarbe erforderlich'});
+ if(symbol!==undefined&&(typeof symbol!=='string'||(symbol!==''&&!roomSymbols.some(item=>item.id===symbol))))return res.status(400).json({error:'Ungültiges Raumsymbol'});
+ const id=method==='put'?String(req.params.id):crypto.randomUUID();
+ if(method==='put'){
+  const result=store.db.prepare('UPDATE rooms SET name=?,color=?,symbol=COALESCE(?,symbol) WHERE id=? AND moveId=?').run(name.trim(),color,symbol??null,id,res.locals.move);
+  if(!result.changes)return res.status(404).json({error:'Raum nicht gefunden'});
+ }else store.db.prepare('INSERT INTO rooms(id,name,color,moveId,symbol) VALUES(?,?,?,?,?)').run(id,name.trim(),color,res.locals.move,symbol??'');
+ res.json({id});
+});
 for(const method of ['post','put'] as const)app[method]('/api/boxes'+(method==='put'?'/:id':''),(req,res)=>{try{res.json({id:store.saveBox(req.body,method==='put'?String(req.params.id):undefined,res.locals.move)});}catch(e){res.status(400).json({error:(e as Error).message});}});
 app.get('/api/boxes/:boxId/photos/:id',(req,res)=>{const photo=store.photo(String(req.params.id),String(req.params.boxId),res.locals.move);if(!photo)return res.status(404).json({error:'Foto nicht gefunden'});res.setHeader('Cache-Control','private, no-store');res.setHeader('X-Content-Type-Options','nosniff');res.type(String(photo.mime)).send(Buffer.from(photo.data as Uint8Array));});
 app.patch('/api/boxes/bulk',(req,res)=>{try{res.json({updated:store.updateBoxes(req.body?.ids,req.body?.changes,res.locals.move)});}catch(e){res.status(400).json({error:(e as Error).message});}});

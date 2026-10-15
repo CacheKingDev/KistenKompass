@@ -1,12 +1,12 @@
-import {useEffect,useId,useRef,useState} from 'react';
-type Room={id:string;name:string;color:string};
+import {useId} from 'react';
+type Room={id:string;name:string;color:string;symbol?:string};
 export function RoomSelect({rooms,value,onChange}:{rooms:Room[];value:string;onChange:(id:string)=>void}){
- const [open,setOpen]=useState(false),[active,setActive]=useState(0);
- const root=useRef<HTMLDivElement>(null),button=useRef<HTMLButtonElement>(null);
- const id=useId(),selected=rooms.find(r=>r.id===value);
- useEffect(()=>{if(!open)return;const close=(e:PointerEvent)=>{if(!root.current?.contains(e.target as Node))setOpen(false);};document.addEventListener('pointerdown',close);return()=>document.removeEventListener('pointerdown',close);},[open]);
- useEffect(()=>{if(open)document.getElementById(`${id}-${active}`)?.scrollIntoView({block:'nearest'});},[active,open,id]);
- function show(){setActive(Math.max(0,rooms.findIndex(r=>r.id===value)));setOpen(true);}
- function choose(index:number){if(rooms[index])onChange(rooms[index].id);setOpen(false);button.current?.focus();}
- return <div className="room-select-field" ref={root} onBlur={e=>{if(!e.currentTarget.contains(e.relatedTarget as Node))setOpen(false);}}><span id={`${id}-label`}>Raum</span><button ref={button} type="button" className="room-select-trigger" role="combobox" aria-labelledby={`${id}-label`} aria-expanded={open} aria-controls={`${id}-list`} aria-haspopup="listbox" aria-required="true" aria-activedescendant={open&&rooms[active]?`${id}-${active}`:undefined} onClick={()=>open?setOpen(false):show()} onKeyDown={e=>{if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();if(!open)show();else setActive(i=>Math.max(0,Math.min(rooms.length-1,i+(e.key==='ArrowDown'?1:-1))));}else if(e.key==='Escape'){e.preventDefault();setOpen(false);}else if(open&&(e.key==='Enter'||e.key===' ')){e.preventDefault();choose(active);}else if(open&&(e.key==='Home'||e.key==='End')){e.preventDefault();setActive(e.key==='Home'?0:rooms.length-1);}}}>{selected&&<i className="room-swatch" style={{background:selected.color}} aria-hidden="true"/>}<span>{selected?.name||'Raum wählen'}</span><span aria-hidden="true">⌄</span></button><input className="room-select-validation" tabIndex={-1} aria-hidden="true" required value={selected?.id||''} onChange={()=>{}} onInvalid={e=>{e.preventDefault();button.current?.focus();show();button.current?.setAttribute('aria-invalid','true');}}/>{open&&<div className="room-select-list" id={`${id}-list`} role="listbox" aria-labelledby={`${id}-label`}>{rooms.map((r,index)=><div key={r.id} id={`${id}-${index}`} role="option" aria-selected={value===r.id} className={`room-select-option ${active===index?'active':''}`} onPointerMove={()=>setActive(index)} onPointerDown={e=>e.preventDefault()} onClick={()=>{button.current?.removeAttribute('aria-invalid');choose(index);}}><i className="room-swatch" style={{background:r.color}} aria-hidden="true"/><span>{r.name}</span>{value===r.id&&<span aria-hidden="true">✓</span>}</div>)}{!rooms.length&&<p>Lege zuerst einen Raum an.</p>}</div>}</div>;
+ const id=useId(),selected=rooms.find(room=>room.id===value);
+ return <div className="room-select-field"><label htmlFor={id}>Raum</label><div className={`room-native-select${selected?' has-room-color':''}`}>
+  {selected&&<i className="room-swatch" style={{background:selected.color}} aria-hidden="true"/>}
+  <select id={id} required value={selected?.id||''} onChange={event=>onChange(event.target.value)}>
+   <option value="" disabled>{rooms.length?'Raum wählen':'Zuerst einen Raum anlegen'}</option>
+   {rooms.map(room=><option key={room.id} value={room.id}>{room.name}</option>)}
+  </select>
+ </div></div>;
 }

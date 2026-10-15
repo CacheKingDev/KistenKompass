@@ -15,6 +15,18 @@ test('HTTP schützt Daten und Adminaktionen; zugewiesene Umzüge und QR-Ziele bl
  const other=(await request('/api/moves',{name:'Privat',date:'',origin:'',destination:'',userIds:[]})).body.id;
  const assigned=(await request('/api/moves',{name:'Gemeinsam',date:'2026-11-01',origin:'A',destination:'B',userIds:[helper]})).body.id;
  const room=(await request('/api/rooms?move='+other,{name:'Küche',color:'#123456'})).body.id;
+ assert.equal((await request('/api/data?move='+other)).body.rooms.find((r:any)=>r.id===room).symbol,'');
+ assert.equal((await request('/api/rooms/'+room+'?move='+other,{name:'Küche',color:'#123456',symbol:'kitchen'},'PUT')).status,200);
+ assert.equal((await request('/api/rooms/'+room+'?move='+assigned,{name:'Küche',color:'#123456',symbol:'bed'},'PUT')).status,404);
+ assert.equal((await request('/api/rooms/'+room+'?move='+other,{name:'Küche',color:'#123456'},'PUT')).status,200);
+ assert.equal((await request('/api/data?move='+other)).body.rooms.find((r:any)=>r.id===room).symbol,'kitchen');
+ assert.equal((await request('/api/rooms/'+room+'?move='+other,{name:'Küche',color:'#123456',symbol:'unknown'},'PUT')).status,400);
+ assert.equal((await request('/api/rooms?move='+other,{name:'Falsch',color:'#123456',symbol:42})).status,400);
+ const symbolRoom=(await request('/api/rooms?move='+other,{name:'Garten',color:'#123456',symbol:'garden'})).body.id;
+ assert.equal((await request('/api/data?move='+other)).body.rooms.find((r:any)=>r.id===symbolRoom).symbol,'garden');
+ assert.equal((await request('/api/rooms/'+symbolRoom+'?move='+other,{name:'Garten',color:'#123456',symbol:''},'PUT')).status,200);
+ assert.equal((await request('/api/data?move='+other)).body.rooms.find((r:any)=>r.id===symbolRoom).symbol,'');
+ assert.equal((await request('/api/rooms/'+symbolRoom+'?move='+other,{},'DELETE')).status,200);
  const b={name:'Tassen',roomId:room,items:['Tasse'],type:'Umzugskarton',fragile:true,heavy:false,status:'Gepackt'};const box=(await request('/api/boxes?move='+other,b)).body.id;
  assert.equal((await request('/api/rooms/'+room+'?move='+other,{},'DELETE','')).status,401);
  assert.equal((await request('/api/rooms/'+room+'?move='+assigned,{},'DELETE')).status,404);

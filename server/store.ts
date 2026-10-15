@@ -8,6 +8,7 @@ export class Store {
  CREATE TABLE IF NOT EXISTS box_types(name TEXT PRIMARY KEY COLLATE NOCASE);
  INSERT OR IGNORE INTO box_types(name) VALUES('Archivbox'),('Bananenkarton'),('Umzugskarton'),('Sonstiger Karton');
  INSERT OR IGNORE INTO counters VALUES('box',0);`);
+ if(!this.db.prepare('PRAGMA table_info(rooms)').all().some(c=>c.name==='symbol'))this.db.exec("ALTER TABLE rooms ADD COLUMN symbol TEXT NOT NULL DEFAULT ''");
  const columns=this.db.prepare('PRAGMA table_info(box_types)').all();
  for(const column of ['length','width','height'])if(!columns.some(c=>c.name===column))this.db.exec(`ALTER TABLE box_types ADD COLUMN ${column} REAL`);
  const defaults=this.db.prepare('UPDATE box_types SET length=?,width=?,height=? WHERE name=? AND length IS NULL AND width IS NULL AND height IS NULL');
