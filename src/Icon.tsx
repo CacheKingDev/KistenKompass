@@ -1,6 +1,21 @@
 import React from 'react';
 
 const paths = {
+ essentials: <><path d="m12 8 7 4-7 4-7-4 7-4Z"/><path d="m12 8-4-4-6 4 3 4-3 4 6 4 4-4 4 4 6-4-3-4 3-4-6-4-4 4ZM5 18v1l7 4 7-4v-1M12 16v7"/></>,
+ entrance: <><path d="M9 21V3h11v18M17 12h.01M2 12h11M9 8l4 4-4 4"/></>,
+ terrace: <><path d="M2 10c3-9 17-9 20 0H2ZM12 3v18M7 21h10M4 15v6M20 15v6M2 17h4M18 17h4"/></>,
+ library: <><path d="M3 3h4v18H3zM9 3h4v18H9zM16 4l4-1 4 17-4 1-4-17M3 7h4M9 7h4"/></>,
+ music: <><path d="M9 18V5l11-2v13M9 8l11-2"/><ellipse cx="6" cy="18" rx="3" ry="2"/><ellipse cx="17" cy="16" rx="3" ry="2"/></>,
+ play: <><rect x="3" y="3" width="8" height="8" rx="1"/><circle cx="7" cy="7" r="1"/><path d="M13 13h8v8h-8zM3 21l4-8 4 8H3Z"/></>,
+ pets: <><ellipse cx="12" cy="16" rx="6" ry="5"/><ellipse cx="4" cy="9" rx="2" ry="3"/><ellipse cx="9" cy="5" rx="2" ry="3"/><ellipse cx="15" cy="5" rx="2" ry="3"/><ellipse cx="20" cy="9" rx="2" ry="3"/></>,
+ cleaning: <><path d="M8 9h8l3 12H5L8 9ZM10 9V5h4v4M10 5V2h9M19 2v3"/></>,
+ tools: <><path d="m14 5 5 5M12 3l3-1 7 7-1 3-3-1-6-6V3ZM14 10 4 21l-2-2L12 8M3 3l18 18M3 3l1 5 4-4-5-1"/></>,
+ documents: <><path d="M5 2h9l5 5v15H5V2ZM14 2v6h5M8 12h8M8 16h8M8 19h5"/></>,
+ clothes: <path d="m8 3-6 4 3 5 3-2v11h8V10l3 2 3-5-6-4a4 4 0 0 1-8 0Z"/>,
+ shoes: <path d="M3 5h5l2 7 5 3 6 1v5H3V5ZM3 17h18M10 12l-2 2M13 14l-2 2"/>,
+ plants: <><path d="M7 14h10l-2 8H9l-2-8ZM12 14V7M12 10C5 10 4 5 5 2c5 0 8 3 7 8ZM12 12c7 0 8-5 7-8-5 0-8 3-7 8"/></>,
+ seasonal: <><path d="m12 2 3 7 7 1-5 5 1 7-6-4-6 4 1-7-5-5 7-1 3-7Z"/></>,
+ outdoor: <><path d="m12 3 10 18H2L12 3ZM12 3v18M12 12l5 9M8 3l4 3 4-3"/></>,
  attic: <><path d="m2 12 10-9 10 9M5 10v11h14V10M9 21v-6h6v6"/><path d="M10 9h4v3h-4z"/></>,
  hallway: <><path d="M3 21h18M6 21V3h12v18M15 12h.01"/></>,
  dining: <><path d="M5 8h14v5H5zM7 13v8M17 13v8M2 7v11h3M22 7v11h-3M2 18v3M22 18v3"/></>,

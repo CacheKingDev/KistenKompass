@@ -1,4 +1,5 @@
 import React,{useEffect,useState,useRef} from 'react';
+import {useAppUpdate,useUpdateProtection} from './useAppUpdate';
 import {Icon} from './Icon';
 import {About} from './About';
 import {QrScanner,isIPhoneHomeScreen} from './QrScanner';
@@ -34,6 +35,8 @@ export function Workspace({children}:{children:(move:string,admin:boolean,public
  const deleteTrigger=useRef<HTMLButtonElement|null>(null);
  const [user,setUser]=useState<User|null>(null),[publicUrl,setPublicUrl]=useState(location.origin),[setup,setSetup]=useState(false),[loaded,setLoaded]=useState(false),[error,setError]=useState(''),[moves,setMoves]=useState<Move[]>([]),[users,setUsers]=useState<User[]>([]),[selected,setSelected]=useState(''),[manage,setManage]=useState(false),[tab,setTab]=useState('moves'),[deleteMove,setDeleteMove]=useState<Move|null>(null),[editMove,setEditMove]=useState<Move|null>(null),[editUser,setEditUser]=useState<any>(null),[busy,setBusy]=useState(false);
  const busyRef=useRef(busy);busyRef.current=busy;
+ useAppUpdate();
+ useUpdateProtection(!user||busy||scanning||!!(profile||editMove||editUser||deleteMove));
  async function api(path:string,body?:unknown,method='POST'){const r=await fetch(path,body===undefined?undefined:{method,headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});const d=await r.json();if(!r.ok)throw Error(d.error||'Anfrage fehlgeschlagen');return d;}
  async function load(){const session=await api('/api/session');setPublicUrl(session.publicUrl||location.origin);setUser(session.user);setSetup(session.setup);if(session.user){const list:Move[]=await api('/api/moves');setMoves(list);setSelected(old=>list.some(m=>m.id===old)?old:list.some(m=>m.id===new URLSearchParams(location.search).get('move'))?new URLSearchParams(location.search).get('move')!:new URLSearchParams(location.search).has('box')&&list.some(m=>m.id==='initial')?'initial':list[0]?.id||'');if(session.user.role==='admin')setUsers(await api('/api/users'));}setLoaded(true);}
  useEffect(()=>{load().catch(e=>{setError(e.message);setLoaded(true);});const expired=()=>{setUser(null);setManage(false);setAbout(false);};window.addEventListener('kk-session-expired',expired);return()=>window.removeEventListener('kk-session-expired',expired);},[]);

@@ -1,5 +1,11 @@
 # KistenKompass
 
+### Automatische App-Aktualisierung
+
+Nach dem Bereitstellen eines neuen Produktionsbuilds prüft die Anwendung beim Zurückkehren in den Vordergrund und während der Nutzung alle 60 Sekunden auf eine neue Build-Kennung. Das gilt auch für die iPhone-Home-Screen-App. Bei einer neuen Version wird automatisch neu geladen; offene Bearbeitungen, Fotoverarbeitung, Etiketten und laufende Aktionen verzögern die Aktualisierung. Ohne Netzwerk wird später erneut geprüft. `version.json` und HTML werden ohne dauerhaften Browsercache ausgeliefert; diese Cache-Regeln müssen auch vorgeschaltete Proxies berücksichtigen.
+
+Beim erstmaligen Einführen dieser Funktion muss eine bereits geöffnete alte App einmal vollständig geschlossen und neu geöffnet beziehungsweise neu geladen werden. Anschließend erfolgen weitere Versionswechsel automatisch.
+
 Erste lauffähige Entwicklungsstufe für einen Umzug: Räume mit Farben, Kartons mit fortlaufenden Nummern, Inhaltslisten, Suche, Status, Transportdaten und QR-Etiketten mit 120 × 100 mm und 15 × 15 mm Raumfarbe.
 
 ## Lokal starten
@@ -35,3 +41,9 @@ Kartonarten erhalten Außenmaße (Länge × Breite × Höhe in cm). Daraus wird 
 Prüfung: `npm run build` und `npm test`.
 
 Fotos können beim Erfassen und Bearbeiten eines Kartons ergänzt werden: bis zu sechs Bilder aus der Fotomediathek oder über „Foto aufnehmen“. Bilder werden im Browser auf höchstens 1600 Pixel Kantenlänge verkleinert und als JPEG gespeichert. Hinzufügen und Entfernen wird erst mit „Speichern“ übernommen. Die Fotos liegen in der SQLite-Datenbank, sind über die Umzugsberechtigung geschützt und werden beim Löschen des Kartons oder Umzugs entfernt. Bei einem vorgeschalteten Reverse Proxy muss das Request-Limit mindestens 9 MB zulassen.
+
+### Containerprotokoll
+
+Das Unraid-Containerprotokoll zeigt Zeitstempel (UTC), `INFO`, `WARN` oder `ERROR` und eine Meldung pro Ereignis. Protokolliert werden Start und Stopp, erfolgreiche und fehlgeschlagene Anmeldungen, Abmeldungen, Anmeldesperren, Kontoverwaltung, Löschaktionen und fehlgeschlagene HTTP-Anfragen. Bei Anfragen stehen Methode, Routenvorlage, HTTP-Status, Dauer und – sofern angemeldet – Benutzername dabei; bei Löschaktionen außerdem die Ziel-ID. Technische Fehler enthalten einen Fehlercode, sofern verfügbar.
+
+Erfolgreiche Lesezugriffe, Healthchecks und gewöhnliche Speichervorgänge bleiben still. Anfrageinhalte, Passwörter, Cookies, Sitzungstoken, Fotos und Kartoninhalte werden nicht protokolliert. Benutzerwerte werden für einzeilige Ausgabe maskiert und begrenzt. Anmeldungen dokumentieren einen Zeitpunkt, keinen dauerhaften Online-Status. Ausschließlich im Browser auftretende Fehler werden nicht an den Server übertragen. Die Aufbewahrung und Rotation der Containerlogs werden über Docker/Unraid verwaltet.

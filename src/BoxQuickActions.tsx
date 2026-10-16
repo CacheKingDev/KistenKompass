@@ -22,16 +22,21 @@ export function useBoxQuickActions(enabled:boolean){
  return {boxId,open,close,handlers};
 }
 
-export function BoxQuickActions({box,onClose,onChange}:{box:Box;onClose:()=>void;onChange:(field:'fragile'|'heavy',value:boolean)=>Promise<void>}){
+export function BoxQuickActions({box,onClose,onChange,onStatusChange}:{box:Box;onClose:()=>void;onChange:(field:'fragile'|'heavy',value:boolean)=>Promise<void>;onStatusChange:(status:string)=>Promise<void>}){
  const id=useId(),busy=useRef(false),[saving,setSaving]=useState(false),[error,setError]=useState('');
  async function toggle(field:'fragile'|'heavy'){
   if(busy.current)return;busy.current=true;setSaving(true);setError('');
   try{await onChange(field,!box[field]);}catch(error){setError(error instanceof Error?error.message:'Speichern fehlgeschlagen');}finally{busy.current=false;setSaving(false);}
  }
+ async function changeStatus(status:string){
+  if(busy.current||status===box.status)return;busy.current=true;setSaving(true);setError('');
+  try{await onStatusChange(status);}catch(error){setError(error instanceof Error?error.message:'Speichern fehlgeschlagen');}finally{busy.current=false;setSaving(false);}
+ }
  return <Modal titleId={id} className="box-quick-sheet" onClose={()=>{if(!busy.current)onClose();}}>
-  <small>Karton #{String(box.number).padStart(3,'0')}</small><h2 id={id}>{box.name}</h2>
-  <p className="muted">Kennzeichnungen direkt ändern.</p>
+  <small>Karton #{String(box.number).padStart(3,'0')} · {box.name}</small><h2 id={id}>Quickmenü</h2>
+  <p className="muted">Status und Kennzeichnungen direkt ändern.</p>
   {error&&<p role="alert" className="error">{error}</p>}
+  <label htmlFor={id+'-status'}>Status<select id={id+'-status'} disabled={saving} value={box.status} onChange={event=>void changeStatus(event.target.value)}>{['In Vorbereitung','Gepackt','Transportiert','Angekommen','Ausgepackt'].map(status=><option key={status}>{status}</option>)}</select></label>
   <div className="box-quick-toggles">{(['fragile','heavy'] as const).map(field=><button key={field} type="button" aria-pressed={box[field]} disabled={saving} onClick={()=>toggle(field)}><Icon name={field}/><span>{field==='fragile'?'Zerbrechlich':'Schwer'}</span><span className="box-quick-state" aria-hidden="true">{box[field]?'✓':'–'}</span></button>)}</div>
   <p className="box-quick-status" role="status">{saving?'Wird gespeichert …':'Änderungen werden sofort gespeichert.'}</p>
   <button type="button" className="box-quick-done" disabled={saving} onClick={onClose}>Fertig</button>

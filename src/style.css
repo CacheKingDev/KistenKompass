@@ -381,3 +381,7 @@ button.create-box-button,:root[data-theme=dark] button.create-box-button{backgro
 .box-handling-icons>span[aria-label="Schwer"]{color:#8e333b}
 :root[data-theme=dark] .box-handling-icons>span[aria-label="Zerbrechlich"]{color:#ffdb9a}
 :root[data-theme=dark] .box-handling-icons>span[aria-label="Schwer"]{color:#ffc4c9}
+/* Keep UI text fixed during touch gestures; fields retain native text selection. */
+*,*::before,*::after{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+input,textarea,[contenteditable]:not([contenteditable="false"]),[contenteditable]:not([contenteditable="false"]) *{-webkit-user-select:text;user-select:text;-webkit-touch-callout:default}
+.box-quick-sheet select{font-size:16px;min-height:44px;width:100%}

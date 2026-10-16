@@ -11,6 +11,11 @@ test('HTTP schützt Daten und Adminaktionen; zugewiesene Umzüge und QR-Ziele bl
  try{await new Promise<void>((resolve,reject)=>{child.stdout.once('data',()=>resolve());child.once('error',reject);child.once('exit',code=>reject(Error('Server beendet: '+code)));});
  assert.equal((await request('/api/data')).status,401);assert.equal((await request('/api/session')).body.setup,true);
  const credentials={name:'Admin',username:'admin',password:'test-password'};assert.equal((await request('/api/setup',credentials)).status,200);assert.equal((await request('/api/setup',credentials)).status,409);cookie=(await request('/api/login',credentials)).cookie!;const admin=cookie;
+ for(const body of [null,[],42])assert.equal((await request('/api/rooms',body)).status,400);
+ const malformed=await fetch(base+'/api/rooms',{method:'POST',headers:{'Content-Type':'application/json',Cookie:cookie},body:'{"name":'});
+ assert.equal(malformed.status,400);assert.equal(typeof (await malformed.json()).error,'string');
+ const noBody=await fetch(base+'/api/rooms',{method:'POST',headers:{Cookie:cookie}});
+ assert.equal(noBody.status,400);assert.equal(typeof (await noBody.json()).error,'string');
  const helper=(await request('/api/users',{name:'Helfer',username:'helper',password:'helper-password',role:'user',active:true})).body.id;
  const other=(await request('/api/moves',{name:'Privat',date:'',origin:'',destination:'',userIds:[]})).body.id;
  const assigned=(await request('/api/moves',{name:'Gemeinsam',date:'2026-11-01',origin:'A',destination:'B',userIds:[helper]})).body.id;
