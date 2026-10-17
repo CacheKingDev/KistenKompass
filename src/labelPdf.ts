@@ -6,12 +6,12 @@ type Label={box:Box;qr:string;room?:{name:string;color:string;symbol?:string};ro
 // Physical page geometry is independent of Safari's webpage print settings.
 export function createLabelPdf(labels:Label[],{medium='paper'}:{medium?:'paper'|'topstick8717'}={}){
  if(!labels.length)throw Error('Keine Etiketten ausgewählt');
- const adhesive=medium==='topstick8717',width=adhesive?105:120,height=adhesive?148:100;
- const pdf=new jsPDF({orientation:adhesive?'portrait':'landscape',unit:'mm',format:'a4',compress:true});
+ const adhesive=medium==='topstick8717',width=adhesive?148:120,height=adhesive?105:100;
+ const pdf=new jsPDF({orientation:'landscape',unit:'mm',format:'a4',compress:true});
  const lineHeight=4.5;
  labels.forEach(({box,qr,room,roomSymbolImage},index)=>{
   if(index&&index%4===0)pdf.addPage();
-  const slot=index%4,x=adhesive?(slot%2)*105:26+(slot%2)*125,y=adhesive?.5+Math.floor(slot/2)*148:5+Math.floor(slot/2)*100;
+  const slot=index%4,x=adhesive?0.5+(slot%2)*148:26+(slot%2)*125,y=adhesive?Math.floor(slot/2)*105:5+Math.floor(slot/2)*100;
   const right=x+width-5,footer=y+height-15;
   pdf.setTextColor(0);pdf.setDrawColor(85);pdf.setLineWidth(.1);
   if(!adhesive){pdf.setLineDashPattern([1,1],0);pdf.rect(x+1.5,y+1.5,width-3,height-3);pdf.setLineDashPattern([],0);}
