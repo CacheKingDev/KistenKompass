@@ -115,6 +115,13 @@ html:has(.selection-active){scroll-padding-bottom:180px}.selection-active input:
 /* Room names use the full line; marks and cut border print as strokes. */
 .label{position:relative;font-family:"Segoe UI",Helvetica,Arial,sans-serif;line-height:1.3}
 .label::after{content:"";position:absolute;inset:1.5mm;border:.1mm dashed #555;pointer-events:none}
+.label-overlay[data-print-medium=labels] .label::after{content:none}
+.label-overlay[data-print-medium=labels] .label{width:105mm;height:148mm}
+@page topstick8717{size:A4 portrait;margin:0}
+@media print{.label-overlay[data-print-medium=labels] .print-sheet{page:topstick8717;grid-template-columns:105mm 105mm;grid-template-rows:148mm 148mm;column-gap:0;width:210mm;height:297mm}}
+.label-medium{display:flex;align-items:center;gap:12px;margin:12px 0;min-height:44px}
+.label-medium select{width:auto;max-width:100%;min-height:44px;font-size:16px}
+@media(max-width:650px){.label-medium{align-items:stretch;flex-direction:column;gap:6px}.label-medium select{width:100%}}
 .label-header{display:grid;grid-template-columns:auto minmax(0,1fr) 40mm;gap:1mm 3mm;align-items:center}
 .label-header>div{grid-column:1;grid-row:1}
 .label-header strong{font-size:28pt;line-height:1.1;font-variant-numeric:tabular-nums}
