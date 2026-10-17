@@ -2,6 +2,9 @@ import {useEffect,useLayoutEffect} from 'react';
 import {createUpdateCheck} from './appUpdate';
 declare const __BUILD_ID__:string;
 const blockers=new Set<symbol>();
+export function canManuallyReload(){
+ return blockers.size===0&&!document.querySelector('dialog[open],.overlay,.label-overlay,.profile-menu,input:focus,textarea:focus,select:focus,[contenteditable="true"]:focus');
+}
 
 export function useUpdateProtection(blocked:boolean){
  useLayoutEffect(()=>{
