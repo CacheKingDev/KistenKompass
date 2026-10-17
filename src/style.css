@@ -398,14 +398,20 @@ input,textarea,[contenteditable]:not([contenteditable="false"]),[contenteditable
 .box-quick-sheet select{font-size:16px;min-height:44px;width:100%}
 
 /* Floating list navigation stays below dialogs and above the selection toolbar. */
-.list-scroll-buttons{position:fixed;right:max(14px,env(safe-area-inset-right));bottom:max(16px,env(safe-area-inset-bottom));z-index:2;display:flex;flex-direction:column;gap:8px}
-.list-scroll-buttons button{display:grid;place-items:center;width:48px;height:48px;padding:0;border-radius:50%;background:#176956;color:#fff;border-color:#176956;box-shadow:0 3px 12px #20383230}
-.list-scroll-buttons button:hover{background:#125343}
+.list-scroll-buttons{position:fixed;right:env(safe-area-inset-right,0px);bottom:max(16px,env(safe-area-inset-bottom));z-index:2;display:flex;align-items:center;gap:8px;touch-action:pan-y}
+.list-scroll-panel{display:flex;flex-direction:column;gap:8px;padding-right:12px;animation:list-scroll-reveal .16s ease-out}
+.list-scroll-panel[hidden]{display:none}
+.list-scroll-buttons button.list-scroll-handle{width:44px;height:64px;border-radius:10px 0 0 10px;box-shadow:0 2px 8px #20383214}
+.list-scroll-buttons:has(.list-scroll-panel:not([hidden])) .list-scroll-handle{border-radius:10px}
+@keyframes list-scroll-reveal{from{opacity:0;transform:translateX(12px)}to{opacity:1;transform:translateX(0)}}
+@media(prefers-reduced-motion:reduce){.list-scroll-panel{animation:none}}
+.list-scroll-buttons button{display:grid;place-items:center;width:48px;height:48px;padding:0;border-radius:10px;background:#176956cc;color:#fff;border-color:#17695655;box-shadow:0 2px 8px #20383218;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+.list-scroll-buttons button:hover{background:#125343e6}
 .list-scroll-buttons button:focus-visible{outline:3px solid #176956;outline-offset:3px}
 .app:has(~ .list-scroll-buttons){padding-bottom:140px}
 .app.selection-active:has(~ .list-scroll-buttons){padding-bottom:300px}
-:root[data-theme=dark] .list-scroll-buttons button{background:#a9d7c7;color:#203832;border-color:#a9d7c7}
-:root[data-theme=dark] .list-scroll-buttons button:hover{background:#c3e5d9}
+:root[data-theme=dark] .list-scroll-buttons button{background:#a9d7c7cc;color:#203832;border-color:#a9d7c755}
+:root[data-theme=dark] .list-scroll-buttons button:hover{background:#c3e5d9e6}
 :root[data-theme=dark] .list-scroll-buttons button:focus-visible{outline-color:#a9d7c7}
 @media print{.list-scroll-buttons{display:none!important}}
 
