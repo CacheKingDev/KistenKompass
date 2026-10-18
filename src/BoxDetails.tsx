@@ -1,11 +1,12 @@
 
 import {useId,useRef,useState} from 'react';
 import {Modal} from './Modal';
+import {BoxLabelStatus} from './BoxLabelStatus';
 import {Icon} from './Icon';
 import {PhotoGallery} from './PhotoGallery';
 import type {Photo} from './BoxPhotos';
 
-export type Box={photos?:Photo[];id?:string;number?:number;name:string;roomId:string;items:string[];type:string;fragile:boolean;heavy:boolean;status:string;transporter:string;departed:string;currentLocation?:string};
+export type Box={hasLabel?:boolean;photos?:Photo[];id?:string;number?:number;name:string;roomId:string;items:string[];type:string;fragile:boolean;heavy:boolean;status:string;transporter:string;departed:string;currentLocation?:string};
 export function BoxDetails({box,room,move,onClose,onEdit}:{box:Box;room?:{name:string;color:string;symbol?:string};move:string;onClose:()=>void;onEdit:()=>void}){
  const [tab,setTab]=useState<'content'|'photos'|'details'>('content');
  const id=useId(),panel=useRef<HTMLDivElement>(null);
@@ -13,7 +14,7 @@ export function BoxDetails({box,room,move,onClose,onEdit}:{box:Box;room?:{name:s
  function selectTab(next:typeof tab){setTab(next);if(panel.current)panel.current.scrollTop=0;}
  const departed=box.departed?new Date(box.departed):null;
  return <Modal titleId="box-details-title" className="box-details" onClose={onClose}>
-  <div className="box-details-top"><div className="box-details-heading"><span className="box-number">Karton #{String(box.number).padStart(3,'0')}</span><div className="box-header-tags" aria-label="Kartoninformationen"><span className="box-header-room"><i style={{background:room?.color||'#aaa'}} aria-hidden="true"/>{room?.name||'Ohne Raum'}</span><span className="box-header-status" data-status={box.status}>{box.status}</span>{box.fragile&&<span className="box-header-fragile"><Icon name="fragile"/>Zerbrechlich</span>}{box.heavy&&<span className="box-header-heavy"><Icon name="heavy"/>Schwer</span>}</div></div><button type="button" onClick={onClose}>Schließen</button></div>
+  <div className="box-details-top"><div className="box-details-heading"><span className="box-number">Karton #{String(box.number).padStart(3,'0')}</span><div className="box-header-tags" aria-label="Kartoninformationen"><BoxLabelStatus hasLabel={box.hasLabel}/><span className="box-header-room"><i style={{background:room?.color||'#aaa'}} aria-hidden="true"/>{room?.name||'Ohne Raum'}</span><span className="box-header-status" data-status={box.status}>{box.status}</span>{box.fragile&&<span className="box-header-fragile"><Icon name="fragile"/>Zerbrechlich</span>}{box.heavy&&<span className="box-header-heavy"><Icon name="heavy"/>Schwer</span>}</div></div><button type="button" onClick={onClose}>Schließen</button></div>
   <div className="box-details-tabs" role="tablist" aria-label="Kartonbereiche">{tabs.map((item,index)=><button key={item.id} id={id+'-tab-'+item.id} type="button" role="tab" aria-selected={tab===item.id} aria-controls={id+'-panel'} tabIndex={tab===item.id?0:-1} onClick={()=>selectTab(item.id)} onKeyDown={event=>{let next=index;if(event.key==='ArrowRight')next=(index+1)%tabs.length;else if(event.key==='ArrowLeft')next=(index+tabs.length-1)%tabs.length;else if(event.key==='Home')next=0;else if(event.key==='End')next=tabs.length-1;else return;event.preventDefault();selectTab(tabs[next].id);document.getElementById(id+'-tab-'+tabs[next].id)?.focus();}}><Icon name={item.icon}/>{item.label}{item.id==='photos'&&<span className="box-tab-count">{box.photos?.length||0}</span>}</button>)}</div>
   <div ref={panel} className="box-details-panel" id={id+'-panel'} role="tabpanel" aria-labelledby={id+'-tab-'+tab} tabIndex={0}>
   <h2 id="box-details-title">{box.name}</h2>

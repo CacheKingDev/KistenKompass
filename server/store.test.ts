@@ -56,7 +56,7 @@ test('Migration erhält alte Nummern und Inhalte; freie Nummern werden wieder ve
  CREATE TABLE moves(id TEXT PRIMARY KEY,name TEXT,date TEXT,origin TEXT,destination TEXT);INSERT INTO moves VALUES('initial','Alt','','',''),('empty','Leer','','','');
  INSERT INTO rooms VALUES('r','Küche','#123456');
  INSERT INTO boxes VALUES('old',2,'Kaffee','r','["Kaffeemaschine"]','Umzugskarton',1,0,'Gepackt','','','initial');`);
- const before=db.prepare('SELECT * FROM boxes').all();before.forEach(row=>{row.currentLocation='';});db.close();s=new Store(path);
+ const before=db.prepare('SELECT * FROM boxes').all();before.forEach(row=>{row.currentLocation='';row.hasLabel=0;});db.close();s=new Store(path);
  assert.deepEqual(s.db.prepare('SELECT * FROM boxes').all(),before);assert.deepEqual(s.db.prepare('PRAGMA foreign_key_check').all(),[]);
  s.saveBox(box,undefined,'initial');s.saveBox(box,undefined,'empty');s.saveBox(box,undefined,'new');
  assert.deepEqual(s.boxes('initial').map(b=>b.number),[1,2]);assert.equal(s.boxes('empty')[0].number,1);assert.equal(s.boxes('new')[0].number,1);
@@ -183,5 +183,17 @@ test('Mehrfachänderung ist atomar, schützt andere Umzüge und erhält alle nic
  assert.deepEqual(s.boxes('a'),snapshot);
  s.updateBoxes([a,b],{currentLocation:'',transporter:'Chris',status:'Transportiert'},'a');
  assert.deepEqual(s.boxes('a'),before.map(box=>({...box,currentLocation:'',transporter:'Chris',status:'Transportiert'})));
+ }finally{s.db.close();}
+});
+
+test('Etikettenstatus wird gespeichert, erhalten und zurückgenommen',()=>{
+ const s=new Store(':memory:');try{
+ const id=s.saveBox(box,undefined,'a');assert.equal(s.boxes('a')[0].hasLabel,false);
+ s.saveBox({...box,hasLabel:true},id,'a');assert.equal(s.boxes('a')[0].hasLabel,true);
+ s.saveBox(box,id,'a');assert.equal(s.boxes('a')[0].hasLabel,true);
+ assert.throws(()=>s.saveBox({...box,hasLabel:'true'},id,'a'),/Etikettenstatus/);
+ assert.throws(()=>s.saveBox({...box,hasLabel:false},id,'b'),/nicht gefunden/);
+ assert.equal(s.boxes('a')[0].hasLabel,true);
+ s.saveBox({...box,hasLabel:false},id,'a');assert.equal(s.boxes('a')[0].hasLabel,false);
  }finally{s.db.close();}
 });

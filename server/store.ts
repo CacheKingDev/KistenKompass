@@ -17,6 +17,7 @@ export class Store {
  defaults.run(60,33,34,'Umzugskarton');
  this.migrateBoxNumbers();
  if(!this.db.prepare('PRAGMA table_info(boxes)').all().some(c=>c.name==='currentLocation'))this.db.exec("ALTER TABLE boxes ADD COLUMN currentLocation TEXT NOT NULL DEFAULT ''");
+ if(!this.db.prepare('PRAGMA table_info(boxes)').all().some(c=>c.name==='hasLabel'))this.db.exec("ALTER TABLE boxes ADD COLUMN hasLabel INTEGER NOT NULL DEFAULT 0");
  this.db.exec('CREATE TABLE IF NOT EXISTS box_photos(id TEXT PRIMARY KEY,boxId TEXT NOT NULL REFERENCES boxes(id) ON DELETE CASCADE,mime TEXT NOT NULL,data BLOB NOT NULL)');
  }
  private migrateBoxNumbers(){
@@ -59,7 +60,7 @@ export class Store {
  this.db.prepare('INSERT INTO box_types(name) VALUES(?)').run(value);
  return value;
  }
- boxes(moveId?:string){return (moveId?this.db.prepare('SELECT * FROM boxes WHERE moveId=? ORDER BY number').all(moveId):this.db.prepare('SELECT * FROM boxes ORDER BY number').all()).map(b=>({...b,id:String(b.id),name:String(b.name),number:Number(b.number),currentLocation:String(b.currentLocation||''),status:String(b.status),type:String(b.type),photos:this.db.prepare('SELECT id FROM box_photos WHERE boxId=? ORDER BY rowid').all(b.id).map(p=>({id:String(p.id)})),items:JSON.parse(String(b.items)) as string[],fragile:!!b.fragile,heavy:!!b.heavy}));}
+ boxes(moveId?:string){return (moveId?this.db.prepare('SELECT * FROM boxes WHERE moveId=? ORDER BY number').all(moveId):this.db.prepare('SELECT * FROM boxes ORDER BY number').all()).map(b=>({...b,id:String(b.id),name:String(b.name),number:Number(b.number),currentLocation:String(b.currentLocation||''),status:String(b.status),type:String(b.type),photos:this.db.prepare('SELECT id FROM box_photos WHERE boxId=? ORDER BY rowid').all(b.id).map(p=>({id:String(p.id)})),items:JSON.parse(String(b.items)) as string[],fragile:!!b.fragile,heavy:!!b.heavy,hasLabel:!!b.hasLabel}));}
  updateBoxes(ids:unknown,changes:unknown,moveId:string){
  if(!Array.isArray(ids)||!ids.length||ids.length>2000||ids.some(id=>typeof id!=='string'||!id)||new Set(ids).size!==ids.length)throw Error('Bitte gültige Kartons auswählen (höchstens 2000).');
  if(!changes||typeof changes!=='object'||Array.isArray(changes))throw Error('Ungültige Änderungen');
@@ -106,9 +107,11 @@ export class Store {
  if(moveId){if(id&&!this.db.prepare('SELECT id FROM boxes WHERE id=? AND moveId=?').get(id,moveId))throw Error('Karton nicht gefunden');if(b.roomId&&!this.db.prepare('SELECT id FROM rooms WHERE id=? AND moveId=?').get(b.roomId,moveId))throw Error('Raum gehört zu einem anderen Umzug');}
  if(!b || typeof b.name!=='string'|| !b.name.trim() || !Array.isArray(b.items)||b.items.some((i:any)=>typeof i!=='string')|| !['In Vorbereitung','Gepackt','Transportiert','Angekommen','Ausgepackt'].includes(b.status)||typeof b.type!=='string'|| typeof b.fragile!=='boolean'||typeof b.heavy!=='boolean')throw new Error('Ungültige Kartondaten');
  if(b.currentLocation!==undefined&&(typeof b.currentLocation!=='string'||b.currentLocation.length>200))throw Error('Standort darf höchstens 200 Zeichen enthalten');
+ if(b.hasLabel!==undefined&&typeof b.hasLabel!=='boolean')throw Error('Ungültiger Etikettenstatus');
+ const hasLabel=b.hasLabel===undefined&&id?!!this.db.prepare('SELECT hasLabel FROM boxes WHERE id=?').get(id)?.hasLabel:!!b.hasLabel;
  const currentLocation=b.currentLocation===undefined&&id?String(this.db.prepare('SELECT currentLocation FROM boxes WHERE id=?').get(id)?.currentLocation||''):String(b.currentLocation||'').trim();
- const values=[b.name.trim(),b.roomId||null,JSON.stringify(b.items),b.type,b.fragile?1:0,b.heavy?1:0,b.status,String(b.transporter||''),String(b.departed||''),currentLocation];
- if(id){const result=this.db.prepare('UPDATE boxes SET name=?,roomId=?,items=?,type=?,fragile=?,heavy=?,status=?,transporter=?,departed=?,currentLocation=? WHERE id=?').run(...values,id);if(!result.changes)throw new Error('Karton nicht gefunden');return id;}
- const targetMove=moveId||'initial';const row=this.db.prepare('WITH candidates(number) AS (SELECT 1 UNION ALL SELECT number+1 FROM boxes WHERE moveId=?) SELECT MIN(number) AS value FROM candidates WHERE NOT EXISTS (SELECT 1 FROM boxes WHERE moveId=? AND boxes.number=candidates.number)').get(targetMove,targetMove)!;const key=crypto.randomUUID();this.db.prepare('INSERT INTO boxes(name,roomId,items,type,fragile,heavy,status,transporter,departed,currentLocation,id,number,moveId) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)').run(...values,key,Number(row.value),targetMove);return key;
+ const values=[b.name.trim(),b.roomId||null,JSON.stringify(b.items),b.type,b.fragile?1:0,b.heavy?1:0,b.status,String(b.transporter||''),String(b.departed||''),currentLocation,hasLabel?1:0];
+ if(id){const result=this.db.prepare('UPDATE boxes SET name=?,roomId=?,items=?,type=?,fragile=?,heavy=?,status=?,transporter=?,departed=?,currentLocation=?,hasLabel=? WHERE id=?').run(...values,id);if(!result.changes)throw new Error('Karton nicht gefunden');return id;}
+ const targetMove=moveId||'initial';const row=this.db.prepare('WITH candidates(number) AS (SELECT 1 UNION ALL SELECT number+1 FROM boxes WHERE moveId=?) SELECT MIN(number) AS value FROM candidates WHERE NOT EXISTS (SELECT 1 FROM boxes WHERE moveId=? AND boxes.number=candidates.number)').get(targetMove,targetMove)!;const key=crypto.randomUUID();this.db.prepare('INSERT INTO boxes(name,roomId,items,type,fragile,heavy,status,transporter,departed,currentLocation,hasLabel,id,number,moveId) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)').run(...values,key,Number(row.value),targetMove);return key;
  }
 }
