@@ -76,7 +76,7 @@ export class Store {
  setBoxHandling(id:string,data:unknown,moveId:string){
  if(!data||typeof data!=='object'||Array.isArray(data))throw Error('Ungültige Kennzeichnungen');
  const entries=Object.entries(data);
- if(!entries.length||entries.some(([key,value])=>!['fragile','heavy'].includes(key)||typeof value!=='boolean'))throw Error('Ungültige Kennzeichnungen');
+ if(!entries.length||entries.some(([key,value])=>!['fragile','heavy','hasLabel'].includes(key)||typeof value!=='boolean'))throw Error('Ungültige Kennzeichnungen');
  const result=this.db.prepare('UPDATE boxes SET '+entries.map(([key])=>key+'=?').join(',')+' WHERE id=? AND moveId=?').run(...entries.map(([,value])=>value?1:0),id,moveId);
  if(!result.changes)throw Error('Karton nicht gefunden');
  }

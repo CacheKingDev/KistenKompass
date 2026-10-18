@@ -53,6 +53,13 @@ test('HTTP schützt Daten und Adminaktionen; zugewiesene Umzüge und QR-Ziele bl
  assert.equal((await request(handlingPath+other,{heavy:'yes'},'PATCH')).status,400);
  assert.equal((await request(handlingPath+other,{name:'Nicht ändern'},'PATCH')).status,400);
  assert.equal((await request(handlingPath+other,{heavy:false,fragile:true},'PATCH')).status,200);
+ assert.equal((await request(handlingPath+other,{hasLabel:true},'PATCH')).status,200);
+ assert.equal((await request('/api/data?move='+other)).body.boxes[0].hasLabel,true);
+ assert.equal((await request(handlingPath+assigned,{hasLabel:false},'PATCH')).status,400);
+ assert.equal((await request(handlingPath+other,{hasLabel:'yes'},'PATCH')).status,400);
+ assert.equal((await request('/api/data?move='+other)).body.boxes[0].hasLabel,true);
+ assert.equal((await request(handlingPath+other,{hasLabel:false},'PATCH')).status,200);
+ assert.equal((await request('/api/data?move='+other)).body.boxes[0].hasLabel,false);
  const bulkPath='/api/boxes/bulk?move=';
  assert.equal((await request(bulkPath+other,{ids:[box],changes:{status:'Transportiert'}},'PATCH','')).status,401);
  assert.equal((await request(bulkPath+assigned,{ids:[box],changes:{status:'Transportiert'}},'PATCH')).status,400);
