@@ -427,3 +427,8 @@ html.pull-refresh-enabled{overscroll-behavior-y:none}
 
 .box-label-status{display:inline-flex;align-items:center;justify-content:center;flex:none;vertical-align:middle;color:inherit;opacity:.8}
 .box-label-status .ui-icon{display:block;width:16px;height:16px;margin:0}
+
+/* Allow immediate single-tap activation while preserving scrolling and pinch zoom. */
+.cards article,.compact-row{touch-action:manipulation}
+.cards article[tabindex="0"]{cursor:pointer}
+.cards article[tabindex="0"]:focus-visible{outline:2px solid #176956;outline-offset:3px}
