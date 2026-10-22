@@ -460,3 +460,4 @@ html.pull-refresh-enabled{overscroll-behavior-y:none}
 :root[data-theme=dark] .overview-count{color:#ededed}
 @media(max-width:950px){.overview-table{display:none}.overview-room-cards{display:grid}}
 @media(max-width:650px){.main-nav{gap:12px}.main-nav button{min-width:44px}.overview-room-cards{grid-template-columns:minmax(0,1fr)}}
+.overview-return{margin-bottom:16px}.overview-return button{min-width:44px;min-height:44px}
