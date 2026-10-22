@@ -1,13 +1,15 @@
 import { DatabaseSync } from 'node:sqlite';
 export class Store {
  db: DatabaseSync;
- constructor(path:string){this.db=new DatabaseSync(path);this.db.exec(`PRAGMA foreign_keys=ON; PRAGMA journal_mode=WAL;
+ constructor(path:string){this.db=new DatabaseSync(path);
+ const initializeBoxTypes=!this.db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='box_types'").get();
+ this.db.exec(`PRAGMA foreign_keys=ON; PRAGMA journal_mode=WAL;
  CREATE TABLE IF NOT EXISTS rooms(id TEXT PRIMARY KEY,name TEXT NOT NULL,color TEXT NOT NULL);
  CREATE TABLE IF NOT EXISTS boxes(id TEXT PRIMARY KEY,number INTEGER NOT NULL UNIQUE,name TEXT NOT NULL,roomId TEXT REFERENCES rooms(id),items TEXT NOT NULL,type TEXT NOT NULL,fragile INTEGER NOT NULL,heavy INTEGER NOT NULL,status TEXT NOT NULL,transporter TEXT NOT NULL,departed TEXT NOT NULL);
  CREATE TABLE IF NOT EXISTS counters(name TEXT PRIMARY KEY,value INTEGER NOT NULL);
  CREATE TABLE IF NOT EXISTS box_types(name TEXT PRIMARY KEY COLLATE NOCASE);
- INSERT OR IGNORE INTO box_types(name) VALUES('Archivbox'),('Bananenkarton'),('Umzugskarton'),('Sonstiger Karton');
  INSERT OR IGNORE INTO counters VALUES('box',0);`);
+ if(initializeBoxTypes)this.db.exec("INSERT INTO box_types(name) VALUES('Archivbox'),('Bananenkarton'),('Umzugskarton'),('Sonstiger Karton')");
  if(!this.db.prepare('PRAGMA table_info(rooms)').all().some(c=>c.name==='symbol'))this.db.exec("ALTER TABLE rooms ADD COLUMN symbol TEXT NOT NULL DEFAULT ''");
  const columns=this.db.prepare('PRAGMA table_info(box_types)').all();
  for(const column of ['length','width','height'])if(!columns.some(c=>c.name===column))this.db.exec(`ALTER TABLE box_types ADD COLUMN ${column} REAL`);

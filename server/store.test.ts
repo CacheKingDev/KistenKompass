@@ -84,6 +84,20 @@ test('Bestehende Kartonarten erhalten fehlende Standardmaße und behalten eigene
  assert.equal(s.boxTypeDetails().find(t=>t.name==='Archivbox')?.length,45);
  }finally{s?.db.close();rmSync(dir,{recursive:true,force:true});}
 });
+test('Umbenannte Standardkartonarten bleiben auch nach wiederholtem Neustart umbenannt',()=>{
+ const dir=mkdtempSync(join(tmpdir(),'kk-renamed-types-')),path=join(dir,'test.sqlite');let s:Store|undefined;
+ try{
+ s=new Store(path);const id=s.saveBox(box);
+ for(const original of ['Umzugskarton','Archivbox','Bananenkarton','Sonstiger Karton'])s.saveBoxType({name:'Neu '+original,length:60,width:40,height:30},original);
+ const expected=s.boxTypeDetails();
+ for(let restart=0;restart<2;restart++){
+ s.db.close();s=new Store(path);
+ assert.deepEqual(s.boxTypeDetails(),expected);
+ assert.equal(s.boxes()[0].id,id);assert.equal(s.boxes()[0].type,'Neu Umzugskarton');
+ assert.deepEqual(s.volumeSummary(),{liters:72,cubicMeters:0.072,missing:0});
+ }
+ }finally{s?.db.close();rmSync(dir,{recursive:true,force:true});}
+});
 test('Eigene Kartonarten bleiben nach Neustart verfügbar',()=>{
  const dir=mkdtempSync(join(tmpdir(),'kistenkompass-types-'));let s:Store|undefined;
  try{s=new Store(join(dir,'test.sqlite'));assert.equal(s.addBoxType('  Bücherkarton  '),'Bücherkarton');assert.throws(()=>s!.addBoxType('bücherkarton'));assert.throws(()=>s!.addBoxType('  '));assert.throws(()=>s!.addBoxType(null));s.saveBox({...box,type:'Bücherkarton'});s.saveBox({...box,type:'Alte Sonderbox'});s.db.close();s=undefined;s=new Store(join(dir,'test.sqlite'));assert.ok(s.boxTypes().includes('Bücherkarton'));assert.ok(s.boxTypes().includes('Alte Sonderbox'));assert.ok(s.boxTypes().includes('Umzugskarton'));assert.equal(s.boxes()[0].type,'Bücherkarton');}finally{s?.db.close();rmSync(dir,{recursive:true,force:true});}

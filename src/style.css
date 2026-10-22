@@ -432,3 +432,31 @@ html.pull-refresh-enabled{overscroll-behavior-y:none}
 .cards article,.compact-row{touch-action:manipulation}
 .cards article[tabindex="0"]{cursor:pointer}
 .cards article[tabindex="0"]:focus-visible{outline:2px solid #176956;outline-offset:3px}
+/* Room overview: switch to cards before the comparison becomes cramped. */
+.overview-table{border:1px solid #e0e6df;border-radius:14px;overflow:hidden;background:white}
+.overview-table table{width:100%;table-layout:fixed;border-collapse:collapse;text-align:left}
+.overview-table th,.overview-table td{padding:12px;overflow-wrap:anywhere;border-bottom:1px solid #e0e6df}
+.overview-table thead,.overview-table tfoot{background:#e9eeeb}
+.overview-table td,.overview-table th:not(:first-child){text-align:center}
+.overview-table th:first-child{width:23%}
+.overview-table tfoot th,.overview-table tfoot td{border-bottom:0;font-weight:600}
+.overview-count{min-width:44px;min-height:44px;color:#176956;font-weight:600;font-variant-numeric:tabular-nums}
+.overview-room-name{display:flex;gap:10px;align-items:center;min-width:0;overflow-wrap:anywhere}
+.overview-room-name>span:last-child{min-width:0}
+.overview-room-cards{display:none;gap:16px;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr))}
+.overview-room-cards article{min-width:0;padding:20px}
+.overview-room-cards h3{margin:0 0 16px;font-size:19px}
+.overview-room-cards dl{margin:0}
+.overview-room-cards dl>div,.overview-card-total{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 0}
+.overview-room-cards dt{overflow-wrap:anywhere;min-width:0}
+.overview-room-cards dd{margin:0;flex-shrink:0}
+.overview-card-total{border-bottom:1px solid #e0e6df;font-weight:600}
+.overview-table-many{display:none}.overview-room-cards-many{display:grid}
+.room-overview .settings-intro p+p{margin-top:8px}
+.overview-table caption{position:absolute;width:1px;height:1px;padding:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+:root[data-theme=dark] .overview-table{background:#252525;border-color:#555}
+:root[data-theme=dark] .overview-table th,:root[data-theme=dark] .overview-table td,:root[data-theme=dark] .overview-card-total{border-color:#555}
+:root[data-theme=dark] .overview-table thead,:root[data-theme=dark] .overview-table tfoot{background:#333}
+:root[data-theme=dark] .overview-count{color:#ededed}
+@media(max-width:950px){.overview-table{display:none}.overview-room-cards{display:grid}}
+@media(max-width:650px){.main-nav{gap:12px}.main-nav button{min-width:44px}.overview-room-cards{grid-template-columns:minmax(0,1fr)}}
